@@ -1,2 +1,47 @@
-# sofapad
-Turn your iPhone browser into a local trackpad for your Mac. Built for the couch, powered by a macOS menu bar app.
+# SofaPad
+
+**Your iPhone browser. Your Mac trackpad. From the sofa.**
+
+把 iPhone 浏览器变成 Mac 的局域网触控板，为连接电视的 Mac mini 打造。
+
+> 项目状态：产品蓝图与规划阶段。当前尚无可用 App、安装包或已完成的真机验证。
+
+## 使用方式
+
+计划只提供一个需要安装的 **macOS 菜单栏 App**。App 内置网页与本地接收服务，iPhone 使用 Safari 扫码打开该网页，配对后即可控制 Mac。
+
+手机无需安装 App、维护签名或单独部署网站。Mac 与手机需要处在可互通的局域网中；Mac 接网线、手机接 Wi-Fi 也可以。
+
+## MVP 操作
+
+| iPhone 触控 | Mac 响应 |
+| --- | --- |
+| 单指滑动 | 移动指针 |
+| 单指轻点／双击 | 左键单击／双击 |
+| 双指轻点 | 右键单击 |
+| 双指上下／左右滑动 | 垂直／水平滚动 |
+
+少量关键词输入交给 Mac 自带的辅助功能键盘：先点击搜索框，再点击电视画面上的屏幕键盘。首版不做手机键盘、拖拽、多指系统手势、屏幕镜像或云中继。
+
+## 开发基线
+
+- [产品蓝图 v1.2](docs/product-blueprint.md)：范围、架构、配对、手势规则、开发阶段与 22 项验收检查。
+- [路线图与验证状态](docs/roadmap.md)：从技术验证到客厅真机验收。
+
+后续 Mac App、网页、协议与测试均在本仓库维护，网页构建后随 Mac App 一起打包。当前仅提交文档，暂未提供构建命令，以免将规划误写成可运行功能。
+
+## 本地网页与 GitHub Pages
+
+实际控制页计划由各用户的 Mac 提供。GitHub Pages 可用于介绍或演示，并非本地鼠标服务；HTTPS 页面直连 Mac 还需要解决 WSS 证书与浏览器安全策略。
+
+规划中的 HTTP/WS 简化模式没有 TLS 保护，仅面向受信任的家庭局域网；配对不能替代加密。是否采用该模式或 HTTPS/WSS，在 M0 结合真机验证与部署取舍确定。不要暴露控制服务到公网。
+
+正常使用前提是 Mac 已登录、已解锁、保持唤醒并授予所需辅助功能权限。开机解锁和网络唤醒不属于 MVP。
+
+## 参与项目
+
+欢迎基于蓝图讨论手势体验、Safari 兼容性和 Mac mini 接电视的使用场景。代码实现前先完成 M0，不将模拟器或代码检查视为真机验收通过。
+
+## License
+
+[MIT](LICENSE) · Copyright (c) 2026 Key (keyzhao0118).

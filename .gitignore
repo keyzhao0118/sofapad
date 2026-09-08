@@ -1,0 +1,26 @@
+# macOS and Xcode local files
+.DS_Store
+DerivedData/
+.build/
+xcuserdata/
+*.xcuserstate
+
+# Web build output
+node_modules/
+dist/
+coverage/
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.key
+*.mobileprovision
+*.provisionprofile
+
+# Temporary and local validation artifacts
+*.log
+.idea/
+.vscode/
