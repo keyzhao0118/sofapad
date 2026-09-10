@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SofaPad v2 authenticated client messages",
+  "description": "Stateful session, sequence, scroll and drag lifecycle checks are enforced by ProtocolValidator. UTF-8 message <= 16384 bytes; text <= 12000 UTF-8 bytes. See ../README.md.",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "move"
+        },
+        "dx": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "dy": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "dx",
+        "dy"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "scroll"
+        },
+        "dx": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "dy": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "phase": {
+          "enum": [
+            "begin",
+            "update",
+            "end",
+            "cancel"
+          ]
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "dx",
+        "dy",
+        "phase"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "enum": [
+                  "end",
+                  "cancel"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dx": {
+                "const": 0
+              },
+              "dy": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "click"
+        },
+        "button": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "count": {
+          "enum": [
+            1,
+            2
+          ]
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "button",
+        "count"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "button": {
+                "const": "right"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "count": {
+                "const": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "ping"
+        },
+        "nonce": {
+          "type": "string",
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "nonce"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "disconnect"
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "drag"
+        },
+        "dx": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "dy": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "phase": {
+          "enum": [
+            "begin",
+            "update",
+            "end",
+            "cancel"
+          ]
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "dx",
+        "dy",
+        "phase"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "enum": [
+                  "end",
+                  "cancel"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dx": {
+                "const": 0
+              },
+              "dy": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "paste"
+        },
+        "requestID": {
+          "type": "string",
+          "minLength": 38,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9:-]+$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "requestID",
+        "text"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "sofapad-web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node build.mjs",
+    "test": "tsc -p tsconfig.json && node build.mjs && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

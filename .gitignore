@@ -17,6 +17,7 @@ coverage/
 *.p12
 *.p8
 *.key
+*.pem
 *.mobileprovision
 *.provisionprofile
 
@@ -24,3 +25,5 @@ coverage/
 *.log
 .idea/
 .vscode/
+build/
+__pycache__/

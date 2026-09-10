@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>io.github.keyzhao0118.SofaPad</string>
+  <key>CFBundleExecutable</key><string>SofaPad</string>
+  <key>CFBundleName</key><string>SofaPad</string>
+  <key>CFBundleDisplayName</key><string>SofaPad</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.2.0</string>
+  <key>CFBundleVersion</key><string>2</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key><string>SofaPad 通过家庭局域网向你的 iPhone 提供触控网页，并接收经过配对的鼠标操作。</string>
+  <key>NSPrincipalClass</key><string>NSApplication</string>
+</dict></plist>

@@ -1,0 +1,73 @@
+# 构建与安装
+
+需要 macOS、Xcode（Swift 6.2+）、Node.js 22+、pnpm。当前验证环境为 Apple Silicon / macOS 26.6.2 / Xcode 26.6 / Swift 6.3.3；运行目标 macOS 13+，旧系统和 Intel 待测。
+
+```bash
+pnpm install --dir Web --frozen-lockfile
+bash scripts/build.sh
+open build/SofaPad.app
+```
+
+生成当前主机架构 release App，默认本机 ad hoc 签名；网页、依赖资源和许可均已内置，最终使用者无需 Node。可用 NODE_BINARY／PNPM_BINARY 指定工具，CONFIGURATION=debug 切调试，SIGNING_IDENTITY 选择自己的代码签名身份。
+
+脚本先组装并签名，再替换产物；旧 App 保存在 build/previous.*/。先退出旧版，再打开新版本。复制到 `/Applications/SofaPad.app` 等稳定位置使用；ad hoc 重签后可能需在辅助功能列表移除旧项并重新添加。
+
+## 首次部署与配对
+
+1. 在 Mac 打开“首次连接与授权”，选择家庭网络地址。
+2. 正式使用：导入 **PEM 证书链及对应未加密 PEM 私钥**。证书须在有效期内，含所用 IP／主机名的 SAN，并被 iPhone Safari 信任。链文件先放服务端证书，再放中间证书。App 不替用户签发证书或修改设备信任。
+3. 点击“开启服务”，核对显示为 HTTPS。点击“授予辅助功能权限…”并在系统中允许 SofaPad；按系统提示允许局域网访问。无需录屏或输入监控权限。
+4. 点击“配对手机”，用 iPhone 系统相机扫码，在普通 Safari 打开。证书验证通过后才能加载和配对。二维码 5 分钟有效且成功即消费；切换地址形式会关闭原配对，需重新开启。
+5. 连接后看到整屏触控板，左上角调整手感，右下角“输入”切换原生键盘。先在电视上选好输入位置，再在手机写文字并“贴入输入框”。Mac 原剪贴板会被覆盖，不自动按回车。
+6. 需要登录启动时，在稳定安装位置显式打开开关，并按系统状态批准。成功启用 HTTPS 后会记住运行选择，显式停止则取消下次自动开启。
+
+### 证书准备边界
+
+当前 App 只允许显示的私有 IP 与真实本机 `.local` 主机名作为 Host。部署时可使用已在设备上受信任的家庭／组织 CA，为固定 IP 或实际 `.local` 签发服务端证书。自定义域名的 Host 配置和自动证书运维需后续实现。
+
+若使用自己的 CA，需要用户在 iPhone 上完成证书安装与信任，并保管 CA 私钥。App 只导入服务端证书和服务端私钥，不能导入 CA 私钥；不会自动安装或信任证书。不要用“忽略证书错误”作为验收方法。证书到期或地址变化后需停止服务、更新证书，再重新启动。
+
+导入材料保存于 `~/Library/Application Support/SofaPad/TLS/`，目录 0700、文件 0600。私钥不进入源码、日志或手机。代码签名证书与 HTTPS 证书职责不同，不可混用。
+
+### 开发 HTTP
+
+没有准备证书时，可在 Mac 显式选择“仅开发：允许未加密 HTTP（含文字和凭据）”测试。此模式每次进程启动重新选择，不自动恢复；不满足正式使用的通信保护要求。仅用于受信任隔离测试网络，不传敏感文字、不映射到公网。
+
+HTTPS 使用 __Host-sofapad Secure Cookie，HTTP 使用独立 cookie 名。升级 0.1.0 后切到 HTTPS 需要重新配对；旧网页使用 v1 协议，请刷新加载新网页。手感设置在同一 origin 内保留；草稿不保证刷新后恢复。
+
+## 文字、拖动与生命周期
+
+三指落下后滑动才开始拖动，任意一指抬起就释放；余下触点抬完才开始下一次。若 iOS 系统三指手势抢占触摸，须记录为兼容性未通过，不能以 Chromium 成功代替。
+
+中文选词完成后发送整段文字。保留空格／换行／Emoji；超过 12,000 UTF-8 字节或 16 KiB 完整消息时拒绝，不截断。“粘贴指令已执行”并不保证目标应用接受；结果不明时看电视确认，再决定是否主动重新发送。
+
+Mac 需登录、解锁、唤醒。应用不修改睡眠；系统／显示器休眠或会话切换暂停控制，恢复后页面自动尝试重连。主动断开、撤销或 busy 不自动抢回会话。协议断线／超时会释放由应用按住的左键；强杀进程不属于正常退出保障。
+
+## 排障
+
+| 现象 | 处理 |
+| --- | --- |
+| 无法开启服务 | 选择有效私有 IPv4，并导入证书或显式选择开发 HTTP；检查端口 9876 是否被旧 App 占用 |
+| Safari 证书警告 | 检查信任链、SAN 与访问地址、有效期；更新材料，不绕过验证 |
+| 页面打不开 | 检查服务、唤醒、地址、防火墙和局域网权限；访客 Wi-Fi／客户端隔离可能不互通 |
+| 主机名不可达 | 换 App 显示的 IP，但证书须覆盖该 IP；重新配对 |
+| 未配对 | 令牌过期／用过则重新开启；HTTPS 与 HTTP、Safari 与主屏幕入口可能需分别配对 |
+| busy | 在原手机／标签页或 Mac 断开；异常离线约 6 秒释放后重试 |
+| 连上不能操作 | 检查辅助功能权限、用户会话与演示标记；演示不会产生系统输入 |
+| 贴入后看不到文字 | 看电视检查光标／选区／目标是否允许粘贴；SofaPad 不自动找输入框或触发搜索 |
+| 请求结果不明 | 保留手机原文，查看电视后再决定重发；系统不会自动重复粘贴 |
+| 文本请求达到上限 | 确认当前结果后退出并重启 Mac App；停止／开启服务不更换进程 epoch |
+| 地址变化后停止 | 更新选择、证书（如需）并启用，可在路由器为 Mac 保留 DHCP 地址 |
+| 无可用地址 | 当前仅 en* Wi-Fi／以太网私有 IPv4，IPv6-only／VPN／特殊桥接待适配 |
+
+## 测试与分发
+
+```bash
+bash scripts/test.sh
+# 仅本机演示，不操作鼠标或剪贴板；pair-file 含临时秘密，不提交。
+.build/debug/SofaPad --preview-server --port 19876 --web-root "$PWD/Web/dist" --pair-file /tmp/sofapad-preview.json
+```
+
+演示可附加 `--tls-cert PATH --tls-key PATH`（必须同时传入）。测试需 Python 3 和 openssl；生成临时回环证书，仅在测试 SSLContext 信任，不改系统信任。可选 `node Tests/Integration/browser_test.mjs` 需 Playwright 与 Chrome；PLAYWRIGHT_MODULE／CHROME_BINARY 可指定本机路径，截图输出 build/validation/。
+
+本地 App 未公证、未公开发布。正式分发需自己的 Developer ID、Hardened Runtime、公证及真实设备验收。脚本支持 SIGNING_IDENTITY，具体流程见 [Apple 公证文档](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)。保留全部 Licenses 文件；本机签名校验不等于分发验收。
