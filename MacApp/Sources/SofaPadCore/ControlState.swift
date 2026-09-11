@@ -70,13 +70,13 @@ public final class ControlState: @unchecked Sendable {
     public func ready(id: String) -> [String: Any] { locked {
         ["type": "ready", "v": WireProtocol.version, "sessionID": id, "name": name, "pasteEpoch": pasteEpoch,
          "permitted": !suspended && executor.permitted, "doubleClickInterval": executor.doubleClickInterval,
-         "preview": preview]
+         "preview": preview, "capabilities": ["backspace"]]
     } }
     public func process(_ data: Data, sessionID: String) throws -> InputMessage { try locked {
         guard var session = active, session.id == sessionID, session.device.expires > Date() else { throw ProtocolFailure.stale }
         let message = try session.validator.validate(data, now: ProcessInfo.processInfo.systemUptime)
         active = session
-        if ["move", "click", "scroll", "drag"].contains(message.type) {
+        if ["move", "click", "scroll", "drag", "backspace"].contains(message.type) {
             guard !suspended, executor.permitted else { executor.reset(); return message }
             executor.execute(message)
         }

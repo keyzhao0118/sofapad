@@ -11,10 +11,12 @@ private final class FakeBackend: SystemInputBackend {
     var clipboard: [String] = []
     var writes = true
     var shortcuts = 0
+    var backspaces = 0
     func mouse(_ type: CGEventType, at point: CGPoint, count: Int64) { events.append(type); points.append(point); location = point }
     func scroll(dx: Int32, dy: Int32) {}
     func writeClipboard(_ text: String) -> Bool { clipboard.append(text); return writes }
     func pasteShortcut() -> Bool { shortcuts += 1; return true }
+    func backspace() { backspaces += 1 }
 }
 
 final class InputTests: XCTestCase {
@@ -58,6 +60,39 @@ final class InputTests: XCTestCase {
         try executor.execute(message("drag", ["phase": "begin", "dx": 9, "dy": 0]))
         XCTAssertEqual(executor.paste("draft"), "busy"); XCTAssertTrue(backend.clipboard.isEmpty); XCTAssertEqual(backend.shortcuts, 0)
         executor.reset()
+    }
+    func testBackspaceIsOneUnmodifiedBackwardDeleteDownAndUp() throws {
+        // Build native events without posting them to any application.
+        let events = try XCTUnwrap(QuartzInputBackend.backspaceEvents(source: nil))
+        XCTAssertEqual(events.map(\.type), [.keyDown, .keyUp])
+        for event in events {
+            XCTAssertEqual(event.getIntegerValueField(.keyboardEventKeycode), 0x33)
+            XCTAssertEqual(event.getIntegerValueField(.keyboardEventAutorepeat), 0)
+            XCTAssertEqual(event.flags, [])
+        }
+    }
+    func testBackspaceExecutesOnceWithoutTouchingClipboardAndRespectsPermission() throws {
+        let backend = FakeBackend(), (state, _, id) = try makeState(backend)
+        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace"])
+        let deletion = try data("backspace", session: id)
+        _ = try state.process(deletion, sessionID: id)
+        XCTAssertEqual(backend.backspaces, 1)
+        XCTAssertThrowsError(try state.process(deletion, sessionID: id))
+        XCTAssertEqual(backend.backspaces, 1)
+        backend.permitted = false
+        _ = try state.process(data("backspace", session: id, seq: 2), sessionID: id)
+        XCTAssertEqual(backend.backspaces, 1)
+        XCTAssertTrue(backend.clipboard.isEmpty); XCTAssertTrue(backend.events.isEmpty); XCTAssertEqual(backend.shortcuts, 0)
+        state.release(id: id)
+        XCTAssertThrowsError(try state.process(data("backspace", session: id, seq: 3), sessionID: id))
+        XCTAssertEqual(backend.backspaces, 1)
+    }
+    func testBackspaceCannotInterruptHeldDrag() throws {
+        let backend = FakeBackend(), executor = MouseEventExecutor(backend: backend)
+        try executor.execute(message("drag", ["phase": "begin", "dx": 0, "dy": 0]))
+        try executor.execute(message("backspace")); XCTAssertEqual(backend.backspaces, 0)
+        executor.reset()
+        try executor.execute(message("backspace")); XCTAssertEqual(backend.backspaces, 1)
     }
     private func makeState(_ backend: FakeBackend) throws -> (ControlState, String, String) {
         let state = ControlState(store: try CredentialStore(file: nil), executor: MouseEventExecutor(backend: backend), name: "Test")

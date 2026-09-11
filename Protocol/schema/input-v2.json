@@ -335,6 +335,32 @@
         "requestID",
         "text"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "backspace"
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq"
+      ]
     }
   ]
 }

@@ -259,5 +259,52 @@
     "messages": [
       "{\"type\":\"paste\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"requestID\":\"../secret\",\"text\":\"hello\"}"
     ]
+  },
+  {
+    "name": "backspace",
+    "valid": true,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"backspace\"}"
+    ]
+  },
+  {
+    "name": "backspace-repeat-sequence",
+    "valid": false,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"backspace\"}",
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"backspace\"}"
+    ]
+  },
+  {
+    "name": "backspace-during-drag",
+    "valid": false,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"drag\",\"dx\":0,\"dy\":0,\"phase\":\"begin\"}",
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"type\":\"backspace\"}"
+    ]
+  },
+  {
+    "name": "backspace-during-scroll",
+    "valid": false,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"scroll\",\"dx\":0,\"dy\":5,\"phase\":\"begin\"}",
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"type\":\"backspace\"}"
+    ]
+  },
+  {
+    "name": "backspace-after-drag-end",
+    "valid": true,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"drag\",\"dx\":0,\"dy\":0,\"phase\":\"begin\"}",
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"type\":\"drag\",\"dx\":0,\"dy\":0,\"phase\":\"end\"}",
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":3,\"type\":\"backspace\"}"
+    ]
+  },
+  {
+    "name": "arbitrary-key-is-not-backspace",
+    "valid": false,
+    "messages": [
+      "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"key\",\"keyCode\":36}"
+    ]
   }
 ]

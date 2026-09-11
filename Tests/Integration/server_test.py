@@ -116,6 +116,8 @@ class ServerTests(unittest.TestCase):
         status, headers, data = self.request('GET', '/api/status', Cookie=self.cookie)
         self.assertTrue(json.loads(data)['authenticated']); self.assertTrue(json.loads(data)['preview'])
         self.assertEqual(self.request('GET', '/../../etc/passwd')[0], 404)
+        self.assertEqual(self.request('GET', '/remote.js')[0], 404)
+        self.assertNotIn(b'remote-mode', self.request('GET', '/')[2])
     def test_02_token_replay_host_origin(self):
         self.assertEqual(self.request('POST', '/api/pair', {'token': self.token, 'name': 'replay'})[0], 403)
         self.assertEqual(self.request('GET', '/', Host='evil.example')[0], 403)

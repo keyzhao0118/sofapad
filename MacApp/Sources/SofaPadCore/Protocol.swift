@@ -76,6 +76,8 @@ public struct ProtocolValidator {
                   id.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 || $0 == 58 }) else {
                 throw ProtocolFailure.invalid
             }
+        case "backspace":
+            guard !scrolling, !dragging else { throw ProtocolFailure.invalid }
         case "ping":
             guard let nonce = message.nonce, nonce.count <= 64 else { throw ProtocolFailure.invalid }
         case "disconnect": break

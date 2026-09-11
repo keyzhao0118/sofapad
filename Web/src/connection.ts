@@ -29,11 +29,17 @@ export class ConnectionClient {
   private lastPong = 0;
   private ready = false;
   private permitted = false;
+  private supportsBackspace = false;
   private name = '你的 Mac';
   private pasteEpoch?: string;
   private pendingPaste?: { id: string; sent: boolean; resolve: (result: PasteOutcome) => void; timer: ReturnType<typeof setTimeout> };
   constructor(private update: (update: Update) => void, private cancelGesture: () => void) {}
   get enabled() { return this.ready && this.permitted; }
+  get canBackspace() { return this.enabled && this.supportsBackspace && !this.pendingPaste; }
+  backspace() {
+    if (!this.canBackspace) return false;
+    return this.transmit({ type: 'backspace' });
+  }
 
   async connect(pairToken?: string) {
     if (this.hidden) return;
@@ -111,6 +117,7 @@ export class ConnectionClient {
     try { message = JSON.parse(raw); } catch { this.fail(); return; }
     if (message.type === 'ready' && message.v === 2 && typeof message.sessionID === 'string') {
       this.ready = true; this.sessionID = message.sessionID; this.seq = 0; this.attempt = 0;
+      this.supportsBackspace = Array.isArray(message.capabilities) && message.capabilities.includes('backspace');
       this.pasteEpoch = message.pasteEpoch;
       this.lastPong = performance.now(); clearTimeout(this.deadline);
       this.setPermission(message.permitted === true);
@@ -166,6 +173,7 @@ export class ConnectionClient {
   private clear() {
     this.finishPaste(this.pendingPaste?.sent ? 'uncertain' : 'not_sent'); this.pasteEpoch = undefined;
     this.generation++; this.ready = false; this.permitted = false; this.sessionID = undefined;
+    this.supportsBackspace = false;
     this.cancelGesture(); clearTimeout(this.retry); clearTimeout(this.deadline); clearInterval(this.heartbeat); this.pings.clear();
     const socket = this.socket; this.socket = undefined;
     if (socket) { socket.onclose = null; socket.onmessage = null; socket.close(); }

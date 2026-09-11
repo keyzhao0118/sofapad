@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 
 /// Injectable side-effect boundary; tests never touch the real pointer or clipboard.
 public protocol SystemInputBackend: AnyObject {
@@ -10,6 +11,7 @@ public protocol SystemInputBackend: AnyObject {
     func scroll(dx: Int32, dy: Int32)
     func writeClipboard(_ text: String) -> Bool
     func pasteShortcut() -> Bool
+    func backspace()
 }
 
 public final class MouseEventExecutor: InputExecutor {
@@ -64,6 +66,10 @@ public final class MouseEventExecutor: InputExecutor {
             let dx = Int32(scrollRemainder.x.rounded(.towardZero)), dy = Int32(scrollRemainder.y.rounded(.towardZero))
             scrollRemainder.x -= Double(dx); scrollRemainder.y -= Double(dy)
             if dx != 0 || dy != 0 { backend.scroll(dx: dx, dy: dy) }
+        case "backspace":
+            guard !dragging else { return }
+            previousClick = nil
+            backend.backspace()
         default: break
         }
     }
@@ -116,6 +122,17 @@ public final class QuartzInputBackend: SystemInputBackend {
         // All events are prepared before posting. No async gap can strand the modifier.
         for event in [commandDown, vDown, vUp, commandUp] { event.post(tap: .cghidEventTap) }
         return true
+    }
+    public func backspace() {
+        guard permitted, let events = Self.backspaceEvents(source: source) else { return }
+        for event in events { event.post(tap: .cghidEventTap) }
+    }
+    static func backspaceEvents(source: CGEventSource?) -> [CGEvent]? {
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Delete), keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Delete), keyDown: false) else { return nil }
+        // Prepare both events before posting; no modifiers, repeat, focus change or clipboard access.
+        for event in [down, up] { event.flags = []; event.setIntegerValueField(.keyboardEventAutorepeat, value: 0) }
+        return [down, up]
     }
     private static func clamp(_ point: CGPoint) -> CGPoint {
         var ids = [CGDirectDisplayID](repeating: 0, count: 32), count: UInt32 = 0

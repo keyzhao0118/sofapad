@@ -11,26 +11,36 @@
 </head>
 <body data-mode="touch" data-state="connecting">
   <main id="viewport">
-    <div id="surface" aria-label="触控板：单指移动和点击，双指右键和滚动，三指滑动拖动" aria-disabled="true"></div>
+    <section id="touch-mode" aria-label="触控板模式">
+      <div id="surface" aria-label="触控板：单指移动，轻点左击，双击打开，长按半秒或双指轻点右击，双指滚动，三指或轻点后再次按住滑动拖动" aria-disabled="true"></div>
+      <div id="scroll-left" class="scroll-edge" data-side="left" aria-label="左侧滚动区：上下滑动滚动，抬手停止" aria-disabled="true"><span aria-hidden="true"></span></div>
+      <div id="scroll-right" class="scroll-edge" data-side="right" aria-label="右侧滚动区：上下滑动滚动，抬手停止" aria-disabled="true"><span aria-hidden="true"></span></div>
+    </section>
     <section id="text-mode" hidden aria-label="输入模式">
       <label class="sr-only" for="draft">要贴入 Mac 的文字</label>
       <textarea id="draft" placeholder="在这里输入文字…" autocomplete="off" spellcheck="true" aria-describedby="paste-notice"></textarea>
       <button id="paste" class="primary" disabled>贴入输入框</button>
     </section>
-    <button id="open-settings" class="floating settings-button" aria-label="手感设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button>
-    <button id="mode-toggle" class="floating mode-button" aria-pressed="false">输入</button>
+    <button id="open-settings" class="floating settings-button" aria-label="设置：触控板手感"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button>
+    <button id="backspace" class="floating settings-button delete-button" aria-label="在 Mac 上按一次退格键" title="在 Mac 上按一次退格键" hidden disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-7-7zM12 9l6 6m0-6-6 6"/></svg></button>
+    <button id="mode-toggle" class="floating mode-button" aria-label="切换到输入模式" title="切换到输入模式" aria-pressed="false">
+      <span class="mode-icon control-icon" aria-hidden="true"><svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 6v4"/></svg></span>
+      <span class="mode-icon keyboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M7 10h.01M12 10h.01M17 10h.01M7 15h10"/></svg></span>
+    </button>
     <div id="connection-notice" class="notice" role="status"><span id="detail">正在连接 Mac…</span><button id="retry" hidden>重新连接</button></div>
     <div id="paste-notice" class="notice paste-notice" role="status" hidden></div>
     <div id="preview" hidden>演示模式 · 不操作 Mac</div>
   </main>
   <dialog id="settings" aria-labelledby="settings-title">
-    <div class="sheet-header"><h2 id="settings-title">手感设置</h2><button class="close-button" id="close-settings" aria-label="关闭设置">✕</button></div>
-    <label class="slider-label" for="pointer-speed">指针与拖动速度<output id="pointer-value">1.8×</output></label>
+    <div class="sheet-header"><h2 id="settings-title">设置</h2><button class="close-button" id="close-settings" aria-label="关闭设置">✕</button></div>
+    <section id="handfeel-settings" aria-label="操作手感">
+    <label class="slider-label" for="pointer-speed"><span>指针与拖动速度</span><output id="pointer-value">1.8×</output></label>
     <input id="pointer-speed" type="range" min="0.3" max="4" step="0.1" value="1.8">
     <label class="slider-label" for="scroll-speed">滚动速度<output id="scroll-value">1.4×</output></label>
     <input id="scroll-speed" type="range" min="0.3" max="4" step="0.1" value="1.4">
     <label class="toggle-row" for="natural"><span>自然滚动<small>内容跟随手指的方向移动</small></span><input id="natural" type="checkbox" checked></label>
     <button class="secondary" id="reset">恢复默认手感</button>
+    </section>
   </dialog>
 </body>
 </html>

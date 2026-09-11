@@ -1,12 +1,16 @@
 # 可行性评估与实施决策
 
-2026-09-09 · 基于 [统一产品文档 v2.0](product-blueprint.md)。核心方案可在现有工程上局部重构，保留 Mac 服务、配对、权限、手势状态机与打包基础。主要风险在真实 iPhone 的三指系统手势、输入法事件顺序和首次证书部署；这些需要目标设备验证，不能用编译成功替代。
+2026-09-11 · 基于 [统一产品文档 v2.5](product-blueprint.md)。新增手势复用现有 click／drag 通道，协议保持 v2；按用户实测反馈移除速度式遥控，边缘滚动并入触控板状态机，不扩展服务器命令。核心方案可在现有工程上局部重构，保留 Mac 服务、配对、权限、手势状态机与打包基础。主要风险在真实 iPhone 的三指系统手势、输入法事件顺序和首次证书部署；这些需要目标设备验证，不能用编译成功替代。
 
 ## 能力与取舍
 
 | 能力 | 本轮结论与实现 |
 | --- | --- |
-| 最大化触控面积 | 触控面覆盖 visualViewport，无标题／工具栏；用户最新要求的左上角手感按钮与右下角模式按钮悬浮 |
+| 最大化触控面积 | 触控面覆盖 visualViewport，无标题／工具栏；用户最新要求的左上角手感按钮与右上角模式按钮悬浮 |
+| 长按右击／双击按住拖动 | 触控板静止 500 ms 右击；第二次按住优先作为拖动候选，结束使用已有释放机制 |
+| 操作模式 | 仅触控板与输入；移除遥控界面、引擎和设置，清理旧模式配置并保留触控板手感 |
+| 滚动减速与图标切换 | 双指与双侧边缘滚动统一乘 0.4；右上角鼠标／键盘图标组成胶囊切换，去掉箭头和多余线条，高亮当前状态 |
+| Mac 单次退格 | 输入页左上角图标发送固定 backspace；原生构造无修饰键、无重复的一次按下／抬起，保留手机草稿与焦点；v2 能力声明避免向旧主机发送新类型 |
 | 手机原生键盘输入 | textarea 同步聚焦，compositionend 后等最终 input，再读取完整内容；草稿只在当前页面保留 |
 | 三指拖动 | 拓展既有状态机与 CGEvent 后端，第三指加入窗口、中心阈值、first-up 释放；Safari 系统抢占仍是真机门槛 |
 | Mac 粘贴 | NSPasteboard 写入成功才发 Command + V；无目标查找、焦点切换、Enter 或恢复剪贴板 |
@@ -16,6 +20,12 @@
 | 初次部署 | 可信证书存在一次配置成本；本轮保留明确标识的 HTTP 开发入口，正式使用须完成 Safari 信任配置 |
 | 生命周期 | 沿用公开睡眠／显示器／用户会话通知与双端心跳；增加拖动释放；普通恢复自动重连，主动断开仍尊重用户 |
 | Mac 界面 | 连接、授权和配对为主，低频安装选项折叠；不发展成遥控配置中心 |
+
+用户在实际操作后选择触控板的直接位移控制，本轮不继续校准摇杆曲线。删除速度积分、方向渐变、遥控模块与模式选择；网页构建同时清理已删除模块的编译产物，Mac 静态资源列表同步移除旧模块。
+
+左右 28 px 滚动区在落指时锁定，跨区保持原手势。边缘单触点与中央多触点共用一个状态机，混区加指立即取消并阻止余下触点，避免独立引擎同时发送指针和滚动。长按计时、拖动和滚动沿用统一取消路径；结束状态先落地再调用发送器，避免同步断线重入产生重复释放。
+
+滚动边缘使用同底色、向内渐隐和细短标记。全页控制元素禁止选中／长按菜单／点击高亮，textarea 明确保留原生选字和菜单。Safari 系统边缘手势的抢占仍需真机验证。
 
 ## 原需求冲突的处理
 
@@ -27,12 +37,12 @@
 
 | 模块 | 变化 |
 | --- | --- |
-| `Web/src/app.ts`、`index.html`、`style.css` | 整屏两模式、浮动设置、软键盘视口、触控互斥与草稿保留 |
-| `Web/src/gesture.ts` | 三指候选／拖动／阻止余下触点，拖动和滚动严格分离 |
+| `Web/src/app.ts`、`index.html`、`style.css` | 触控板与输入、双侧滚动区、鼠标／键盘切换、浮动手感设置、旧配置迁移、软键盘视口与草稿保留 |
+| `Web/src/gesture.ts` | 三指与单指拖动、500 ms 长按右击、双侧滚动与混区取消，阻止余下触点 |
 | `Web/src/text-input.ts` | IME 延后提交、防重复、取消未发请求、结果文案 |
-| `Web/src/connection.ts` | v2、paste 回执、请求编号、发送大小限制、无自动重发 |
+| `Web/src/connection.ts` | v2、paste 回执、请求编号、发送大小限制、backspace 能力与权限检查、无自动重发 |
 | `Protocol.swift`、`ControlState.swift`、`ControlSocket.swift` | 状态与大小校验、去重、回执、会话释放 |
-| `MouseEventExecutor.swift` | 可注入系统后端；拖动按下／拖移／释放，先写剪贴板后粘贴 |
+| `MouseEventExecutor.swift` | 可注入系统后端；拖动按下／拖移／释放，先写剪贴板后粘贴，固定单次 Backspace |
 | `ServerTLS.swift`、`HTTPServer.swift`、`Security.swift` | 可选 TLS 管线、精确 scheme／origin、Secure Cookie |
 | `AppModel.swift`、`SofaPadApp.swift` | 精简设置窗口、证书导入、开发 HTTP、正常退出释放 |
 
@@ -40,6 +50,6 @@
 
 SwiftPM + TypeScript，无第三方前端运行时。SwiftNIO 2.102.0 和 swift-nio-ssl 2.37.4 精确锁定；传递依赖见 Package.resolved。构建需 Swift 6.2+，脚本打包网页、资源和第三方许可。
 
-仅选定 en* 私有 IPv4，端口 9876；不用 0.0.0.0、私有锁屏 API、root 或录屏。连续像素滚动不合成惯性／Quartz 滚动阶段。所有鼠标和粘贴副作用在 ControlState 锁内串行；去重只存文本摘要与结果。不可随意增加键码或任意命令入口。
+仅选定 en* 私有 IPv4，端口 9876；不用 0.0.0.0、私有锁屏 API、root 或录屏。连续像素滚动不合成惯性／Quartz 滚动阶段。所有鼠标、粘贴和退格副作用在 ControlState 锁内串行；去重只存文本摘要与结果。固定退格为用户明确新增能力，不开放任意键码或命令入口。
 
 参考公开接口：[CGEvent](https://developer.apple.com/documentation/coregraphics/cgevent)、[NSPasteboard](https://developer.apple.com/documentation/appkit/nspasteboard)、[SwiftNIO SSL](https://github.com/apple/swift-nio-ssl)。本项目的真实通过项以 [验证记录](validation.md) 为准。

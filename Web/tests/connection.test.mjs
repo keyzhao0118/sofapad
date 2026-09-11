@@ -11,7 +11,7 @@ function setup(t) {
     constructor() { sockets.push(this); }
     send(data) { this.sent.push(JSON.parse(data)); }
     close() { this.readyState = 3; }
-    ready(id = 'session-1') { this.onopen(); this.onmessage({ data: JSON.stringify({ type: 'ready', v: 2, sessionID: id, pasteEpoch: '11111111-2222-3333-4444-555555555555', name: 'Mac', permitted: true, doubleClickInterval: 0.5 }) }); }
+    ready(id = 'session-1', capabilities = ['backspace']) { this.onopen(); this.onmessage({ data: JSON.stringify({ type: 'ready', v: 2, sessionID: id, pasteEpoch: '11111111-2222-3333-4444-555555555555', name: 'Mac', permitted: true, doubleClickInterval: 0.5, ...(capabilities ? { capabilities } : {}) }) }); }
     receive(message) { this.onmessage({ data: JSON.stringify(message) }); }
   }
   t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ name: 'Mac', authenticated: true }) }));
@@ -90,4 +90,25 @@ test('host sleep reconnects automatically, while an explicit host disconnect doe
   assert.equal(sockets.length, 2); sockets[1].ready('session-2');
   sockets[1].receive({ type: 'disconnect', reason: 'host_disconnect' });
   client.visibility(true); client.visibility(false); t.mock.timers.tick(30000); assert.equal(sockets.length, 2);
+});
+test('backspace requires readiness, host capability and permission, and sends once without replay', async t => {
+  const { client, sockets } = setup(t); assert.equal(client.backspace(), false);
+  await client.connect(); sockets[0].ready('old-host', null);
+  assert.equal(client.canBackspace, false); assert.equal(client.backspace(), false);
+  await client.connect(); sockets[1].ready(); assert.equal(client.canBackspace, true);
+  assert.equal(client.backspace(), true);
+  assert.deepEqual(sockets[1].sent.at(-1), { type: 'backspace', v: 2, sessionID: 'session-1', seq: 1 });
+  sockets[1].receive({ type: 'status', permitted: false }); assert.equal(client.backspace(), false);
+  assert.equal(sockets[1].sent.filter(m => m.type === 'backspace').length, 1);
+  sockets[1].onclose(); await client.connect(); sockets[2].ready('session-2');
+  assert.equal(sockets[2].sent.some(m => m.type === 'backspace'), false);
+});
+test('backspace is not queued behind paste or a congested connection', async t => {
+  const { client, sockets } = setup(t); await client.connect(); const socket = sockets[0]; socket.ready();
+  const paste = client.paste('draft'), id = socket.sent.at(-1).requestID;
+  assert.equal(client.backspace(), false);
+  socket.receive({ type: 'pasteResult', requestID: id, status: 'executed' }); await paste;
+  assert.equal(client.canBackspace, true); socket.bufferedAmount = 9000;
+  assert.equal(client.backspace(), false); assert.equal(socket.sent.some(m => m.type === 'backspace'), false);
+  await client.connect(); sockets[1].ready('session-2'); assert.equal(sockets[1].sent.length, 1);
 });

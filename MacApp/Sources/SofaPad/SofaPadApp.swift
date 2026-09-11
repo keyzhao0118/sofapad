@@ -124,7 +124,7 @@ struct SetupView: View {
                         }
                     }
                 }
-                Text("0.2.0 · 触控与文字粘贴 · 无云服务").font(.caption).foregroundStyle(.secondary)
+                Text("0.7.0 · 触控、遥控与文字粘贴 · 无云服务").font(.caption).foregroundStyle(.secondary)
             }.padding(24)
         }.frame(minWidth: 460, minHeight: 380)
     }
