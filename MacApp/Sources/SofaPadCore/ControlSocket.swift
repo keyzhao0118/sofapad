@@ -6,7 +6,7 @@ final class ControlSocket: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = WebSocketFrame
     typealias OutboundOut = WebSocketFrame
     private let state: ControlState
-    private let token: String?
+    private let label: String
     private var id: String?
     private var ready = false
     private var lastMessage = ProcessInfo.processInfo.systemUptime
@@ -14,15 +14,14 @@ final class ControlSocket: ChannelInboundHandler, @unchecked Sendable {
     private var heartbeat: RepeatedTask?
     private var lastPermission: Bool?
     private var closed = false
-    init(state: ControlState, token: String?) { self.state = state; self.token = token }
+    init(state: ControlState, label: String) { self.state = state; self.label = label }
     func handlerAdded(context: ChannelHandlerContext) {
         let channel = context.channel
-        let session = state.acquire(token: token) { reason in
+        let id = state.acquire(label: label) { reason in
             channel.eventLoop.execute { [weak self] in
                 self?.end(channel, reason: reason)
             }
         }
-        guard let id = session.id else { return end(channel, reason: session.error ?? "unpaired") }
         self.id = id
         heartbeat = context.eventLoop.scheduleRepeatedTask(initialDelay: .seconds(1), delay: .seconds(1)) { [weak self] _ in
             guard let self, !self.closed else { return }

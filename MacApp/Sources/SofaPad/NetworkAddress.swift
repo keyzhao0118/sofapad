@@ -2,12 +2,12 @@ import Foundation
 import SystemConfiguration
 
 struct NetworkAddress: Identifiable, Equatable {
-    let interface: String
     let ip: String
     var id: String { ip }
-    var label: String { "\(interface) · \(ip)" }
+    /// The Mac's Bonjour name, for example "mac-mini.local". This one stays the same
+    /// even when the router hands out a different IP, so it is the address to keep.
     static var hostname: String? {
-        guard let name = SCDynamicStoreCopyLocalHostName(nil) as String?, !name.isEmpty else { return nil }
+        guard let name = SCDynamicStoreCopyLocalHostName(nil) as? String, !name.isEmpty else { return nil }
         return name.lowercased() + ".local"
     }
     static func available() -> [NetworkAddress] {
@@ -26,8 +26,8 @@ struct NetworkAddress: Identifiable, Equatable {
             let ip = String(cString: buffer), parts = ip.split(separator: ".").compactMap { Int($0) }
             guard parts.count == 4,
                   parts[0] == 10 || (parts[0] == 192 && parts[1] == 168) || (parts[0] == 172 && (16...31).contains(parts[1])) else { continue }
-            result.append(NetworkAddress(interface: name, ip: ip))
+            result.append(NetworkAddress(ip: ip))
         }
-        return result.sorted { $0.label < $1.label }
+        return result.sorted { $0.ip < $1.ip }
     }
 }

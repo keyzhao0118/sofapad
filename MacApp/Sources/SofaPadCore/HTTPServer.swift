@@ -3,7 +3,6 @@ import NIOCore
 import NIOPosix
 import NIOHTTP1
 import NIOWebSocket
-import NIOSSL
 
 public final class LocalServer: @unchecked Sendable {
     private var group: MultiThreadedEventLoopGroup?
@@ -12,12 +11,13 @@ public final class LocalServer: @unchecked Sendable {
     public init(state: ControlState) { self.state = state }
 
     /// Start/stop must be called on the same background queue, never the UI thread.
-    public func start(address: String, port: Int, hostname: String?, webRoot: URL, tls: ServerTLS? = nil) throws {
+    public func start(address: String, port: Int, hostname: String? = nil, webRoot: URL) throws {
         let files = try WebFiles(root: webRoot)
+        // Both the IP and the Bonjour name are accepted; only bound names, so a page
+        // from anywhere else can never reach the socket.
         var hosts: Set<String> = ["\(address):\(port)"]
         if let hostname { hosts.insert("\(hostname):\(port)") }
-        let policy = AccessPolicy(hosts: hosts, secure: tls != nil)
-        let sslContext = try tls?.context()
+        let policy = AccessPolicy(hosts: hosts)
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.group = group
         let state = self.state
@@ -31,33 +31,28 @@ public final class LocalServer: @unchecked Sendable {
                     guard state.admitConnection() else { return channel.close() }
                     channel.closeFuture.whenComplete { _ in state.removeConnection() }
                     let http = HTTPHandler(state: state, policy: policy, files: files)
-                    let upgrader = NIOWebSocketServerUpgrader(maxFrameSize: 16_384, shouldUpgrade: { channel, request in
-                        let accepted = request.method == .GET && request.uri == "/ws" &&
-                            validRequest(request, policy: policy, requiresOrigin: true) &&
-                            state.authenticated(AccessPolicy.credential(cookie: singleHeader(request, "Cookie"), secure: policy.secure))
+                    let upgrader = NIOWebSocketServerUpgrader(maxFrameSize: 16_384, shouldUpgrade: { _, request in
+                        let accepted = request.method == .GET && request.uri == "/ws" && validRequest(request, policy: policy, requiresOrigin: true)
                         return channel.eventLoop.makeSucceededFuture(accepted ? HTTPHeaders() : nil)
                     }, upgradePipelineHandler: { channel, request in
                         channel.eventLoop.makeCompletedFuture {
                             try channel.pipeline.syncOperations.addHandlers(WebSocketFrameGuard(),
                                 NIOWebSocketFrameAggregator(minNonFinalFragmentSize: 1, maxAccumulatedFrameCount: 64, maxAccumulatedFrameSize: 16_384),
-                                ControlSocket(state: state, token: AccessPolicy.credential(cookie: singleHeader(request, "Cookie"), secure: policy.secure)))
+                                ControlSocket(state: state, label: AccessPolicy.clientLabel(userAgent: singleHeader(request, "User-Agent"))))
                         }
                     })
-                    let secured = channel.eventLoop.makeCompletedFuture {
-                        if let sslContext { try channel.pipeline.syncOperations.addHandler(NIOSSLServerHandler(context: sslContext)) }
-                    }
-                    return secured.flatMap { channel.pipeline.configureHTTPServerPipeline(withServerUpgrade: (
+                    return channel.pipeline.configureHTTPServerPipeline(withServerUpgrade: (
                         upgraders: [upgrader], completionHandler: { context in
                             context.pipeline.removeHandler(http, promise: nil)
                         }
-                    )) }.flatMap { channel.pipeline.addHandler(http) }
+                    )).flatMap { channel.pipeline.addHandler(http) }
                 }.bind(host: address, port: port).wait()
         } catch {
             try? group.syncShutdownGracefully(); self.group = nil; throw error
         }
     }
     public func stop() {
-        state.closePairing(); state.disconnect(reason: "host_stopped")
+        state.disconnect(reason: "host_stopped")
         try? listener?.close().wait(); listener = nil
         try? group?.syncShutdownGracefully(); group = nil
     }
@@ -74,15 +69,36 @@ func validRequest(_ request: HTTPRequestHead, policy: AccessPolicy, requiresOrig
     return policy.accepts(host: singleHeader(request, "Host"), origin: singleHeader(request, "Origin"), requiresOrigin: requiresOrigin)
 }
 
+enum WebFilesError: Error, CustomStringConvertible {
+    case missing(String)
+    var description: String {
+        switch self { case .missing(let file): return "网页资源缺少 \(file)，请重新构建 App" }
+    }
+}
+
 final class WebFiles: @unchecked Sendable {
     let assets: [String: (Data, String)]
+    /// Serve whatever the web build produced instead of a fixed list: a new module used to
+    /// be answered with 404 while the rest of the page loaded, so the app looked connected
+    /// but stayed stuck on "正在连接 Mac…". Only real files of known types are exposed.
     init(root: URL) throws {
         var assets: [String: (Data, String)] = [:]
-        for file in ["index.html", "style.css", "app.js", "gesture.js", "connection.js", "text-input.js"] {
-            let type = file.hasSuffix("html") ? "text/html; charset=utf-8" : file.hasSuffix("css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8"
-            assets["/\(file)"] = (try Data(contentsOf: root.appendingPathComponent(file)), type)
+        let entries = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isRegularFileKey])
+        for entry in entries {
+            guard try entry.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true,
+                  let type = Self.contentType(for: entry.lastPathComponent) else { continue }
+            assets["/\(entry.lastPathComponent)"] = (try Data(contentsOf: entry), type)
+        }
+        for required in ["index.html", "style.css", "app.js"] where assets["/\(required)"] == nil {
+            throw WebFilesError.missing(required)
         }
         assets["/"] = assets["/index.html"]; self.assets = assets
+    }
+    private static func contentType(for file: String) -> String? {
+        if file.hasSuffix(".html") { return "text/html; charset=utf-8" }
+        if file.hasSuffix(".css") { return "text/css; charset=utf-8" }
+        if file.hasSuffix(".js") { return "text/javascript; charset=utf-8" }
+        return nil
     }
 }
 
@@ -127,37 +143,15 @@ final class HTTPHandler: ChannelInboundHandler, RemovableChannelHandler, @unchec
         }
     }
     private func route(_ context: ChannelHandlerContext, request: HTTPRequestHead) {
-        let cookie = AccessPolicy.credential(cookie: singleHeader(request, "Cookie"), secure: policy.secure)
         if request.method == .GET, let (data, type) = files.assets[request.uri] {
             return respond(context, status: .ok, data: data, type: type)
         }
         if request.method == .GET, request.uri == "/api/status" {
-            let authenticated = state.authenticated(cookie), snapshot = state.snapshot()
-            return json(context, status: .ok, ["name": state.name, "authenticated": authenticated,
-                "busy": snapshot.activeName != nil, "permitted": snapshot.permitted, "preview": state.preview, "v": WireProtocol.version])
+            let snapshot = state.snapshot()
+            return json(context, status: .ok, ["name": state.name, "permitted": snapshot.permitted,
+                "controllers": snapshot.controllers.count, "preview": state.preview, "v": WireProtocol.version])
         }
-        if request.method == .POST, request.uri == "/api/pair" {
-            struct PairRequest: Decodable { let token: String; let name: String }
-            guard singleHeader(request, "Content-Type")?.split(separator: ";").first == "application/json",
-                  let pair = try? JSONDecoder().decode(PairRequest.self, from: body) else {
-                return json(context, status: .badRequest, ["error": "invalid"])
-            }
-            do {
-                let token = try state.pair(token: pair.token, name: pair.name, peer: context.remoteAddress?.ipAddress ?? "unknown")
-                json(context, status: .ok, ["paired": true], headers: [("Set-Cookie", "\(policy.cookieName)=\(token); HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000\(policy.secure ? "; Secure" : "")")])
-            } catch PairingError.rateLimited { json(context, status: .tooManyRequests, ["error": "rate_limited"])
-            } catch PairingError.storage { json(context, status: .internalServerError, ["error": "storage"])
-            } catch { json(context, status: .forbidden, ["error": "pairing_expired"]) }
-            return
-        }
-        if request.method == .POST, request.uri == "/api/forget" {
-            do {
-                try state.forget(token: cookie)
-                json(context, status: .ok, ["forgotten": true], headers: [("Set-Cookie", "\(policy.cookieName)=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0\(policy.secure ? "; Secure" : "")")])
-            } catch { json(context, status: .internalServerError, ["error": "storage"]) }
-            return
-        }
-        json(context, status: request.uri == "/ws" ? .unauthorized : .notFound, ["error": request.uri == "/ws" ? "unpaired" : "not_found"])
+        json(context, status: .notFound, ["error": "not_found"])
     }
     private func json(_ context: ChannelHandlerContext, status: HTTPResponseStatus, _ value: [String: Any], headers: [(String, String)] = []) {
         respond(context, status: status, data: (try? JSONSerialization.data(withJSONObject: value)) ?? Data(),
@@ -170,7 +164,7 @@ final class HTTPHandler: ChannelInboundHandler, RemovableChannelHandler, @unchec
         headers.add(name: "Connection", value: "close"); headers.add(name: "Cache-Control", value: "no-store")
         headers.add(name: "X-Content-Type-Options", value: "nosniff"); headers.add(name: "Referrer-Policy", value: "no-referrer")
         headers.add(name: "X-Frame-Options", value: "DENY")
-        let sockets = policy.hosts.sorted().map { "\(policy.secure ? "wss" : "ws")://\($0)" }.joined(separator: " ")
+        let sockets = policy.hosts.sorted().map { "ws://\($0)" }.joined(separator: " ")
         headers.add(name: "Content-Security-Policy", value: "default-src 'self'; connect-src 'self' \(sockets); img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         context.write(wrapOutboundOut(.head(HTTPResponseHead(version: .http1_1, status: status, headers: headers))), promise: nil)
         var buffer = context.channel.allocator.buffer(capacity: data.count); buffer.writeBytes(data)

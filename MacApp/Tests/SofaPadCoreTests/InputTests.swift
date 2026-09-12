@@ -1,5 +1,6 @@
 import XCTest
 import ApplicationServices
+import Carbon.HIToolbox
 @testable import SofaPadCore
 
 private final class FakeBackend: SystemInputBackend {
@@ -12,11 +13,15 @@ private final class FakeBackend: SystemInputBackend {
     var writes = true
     var shortcuts = 0
     var backspaces = 0
+    var returns = 0
+    var typed: [String] = []
     func mouse(_ type: CGEventType, at point: CGPoint, count: Int64) { events.append(type); points.append(point); location = point }
     func scroll(dx: Int32, dy: Int32) {}
     func writeClipboard(_ text: String) -> Bool { clipboard.append(text); return writes }
     func pasteShortcut() -> Bool { shortcuts += 1; return true }
     func backspace() { backspaces += 1 }
+    func returnKey() { returns += 1 }
+    func typeText(_ text: String) { typed.append(text) }
 }
 
 final class InputTests: XCTestCase {
@@ -61,19 +66,43 @@ final class InputTests: XCTestCase {
         XCTAssertEqual(executor.paste("draft"), "busy"); XCTAssertTrue(backend.clipboard.isEmpty); XCTAssertEqual(backend.shortcuts, 0)
         executor.reset()
     }
-    func testBackspaceIsOneUnmodifiedBackwardDeleteDownAndUp() throws {
+    func testBackspaceAndReturnAreSingleUnmodifiedKeyPresses() throws {
         // Build native events without posting them to any application.
-        let events = try XCTUnwrap(QuartzInputBackend.backspaceEvents(source: nil))
-        XCTAssertEqual(events.map(\.type), [.keyDown, .keyUp])
-        for event in events {
+        let backspace = try XCTUnwrap(QuartzInputBackend.keyEvents(CGKeyCode(kVK_Delete), source: nil))
+        XCTAssertEqual(backspace.map(\.type), [.keyDown, .keyUp])
+        for event in backspace {
             XCTAssertEqual(event.getIntegerValueField(.keyboardEventKeycode), 0x33)
             XCTAssertEqual(event.getIntegerValueField(.keyboardEventAutorepeat), 0)
             XCTAssertEqual(event.flags, [])
         }
+        let enter = try XCTUnwrap(QuartzInputBackend.keyEvents(CGKeyCode(kVK_Return), source: nil))
+        XCTAssertEqual(enter.map(\.type), [.keyDown, .keyUp])
+        for event in enter {
+            XCTAssertEqual(event.getIntegerValueField(.keyboardEventKeycode), 0x24)
+            XCTAssertEqual(event.getIntegerValueField(.keyboardEventAutorepeat), 0)
+            XCTAssertEqual(event.flags, [])
+        }
+    }
+    func testEnterPressesReturnOnceAndRespectsPermissionAndDrag() throws {
+        let backend = FakeBackend(), (state, id) = try makeState(backend)
+        _ = try state.process(data("enter", session: id), sessionID: id)
+        XCTAssertEqual(backend.returns, 1)
+        XCTAssertThrowsError(try state.process(data("enter", session: id), sessionID: id))
+        XCTAssertEqual(backend.returns, 1)
+        backend.permitted = false
+        _ = try state.process(data("enter", session: id, seq: 2), sessionID: id)
+        XCTAssertEqual(backend.returns, 1)
+        backend.permitted = true
+        let executor = MouseEventExecutor(backend: backend)
+        try executor.execute(message("drag", ["phase": "begin", "dx": 0, "dy": 0]))
+        try executor.execute(message("enter")); XCTAssertEqual(backend.returns, 1)
+        executor.reset()
+        try executor.execute(message("enter")); XCTAssertEqual(backend.returns, 2)
+        XCTAssertTrue(backend.clipboard.isEmpty); XCTAssertEqual(backend.shortcuts, 0)
     }
     func testBackspaceExecutesOnceWithoutTouchingClipboardAndRespectsPermission() throws {
-        let backend = FakeBackend(), (state, _, id) = try makeState(backend)
-        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace"])
+        let backend = FakeBackend(), (state, id) = try makeState(backend)
+        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter"])
         let deletion = try data("backspace", session: id)
         _ = try state.process(deletion, sessionID: id)
         XCTAssertEqual(backend.backspaces, 1)
@@ -87,6 +116,39 @@ final class InputTests: XCTestCase {
         XCTAssertThrowsError(try state.process(data("backspace", session: id, seq: 3), sessionID: id))
         XCTAssertEqual(backend.backspaces, 1)
     }
+    func testLiveEditDeletesThenTypesWithoutTouchingClipboard() throws {
+        let backend = FakeBackend(), (state, id) = try makeState(backend)
+        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter"])
+        _ = try state.process(data("edit", session: id, seq: 1, ["delete": 2, "text": "中a"]), sessionID: id)
+        XCTAssertEqual(backend.backspaces, 2); XCTAssertEqual(backend.typed, ["中a"])
+        _ = try state.process(data("edit", session: id, seq: 2, ["delete": 1, "text": ""]), sessionID: id)
+        XCTAssertEqual(backend.backspaces, 3); XCTAssertEqual(backend.typed, ["中a"])
+        backend.permitted = false
+        _ = try state.process(data("edit", session: id, seq: 3, ["text": "x"]), sessionID: id)
+        XCTAssertEqual(backend.typed, ["中a"])
+        XCTAssertTrue(backend.clipboard.isEmpty); XCTAssertEqual(backend.shortcuts, 0)
+    }
+    func testLiveEditCannotInterruptHeldDrag() throws {
+        let backend = FakeBackend(), executor = MouseEventExecutor(backend: backend)
+        try executor.execute(message("drag", ["phase": "begin", "dx": 0, "dy": 0]))
+        try executor.execute(message("edit", ["delete": 1, "text": "x"]))
+        XCTAssertEqual(backend.backspaces, 0); XCTAssertTrue(backend.typed.isEmpty)
+        executor.reset()
+        try executor.execute(message("edit", ["delete": 1, "text": "x"]))
+        XCTAssertEqual(backend.backspaces, 1); XCTAssertEqual(backend.typed, ["x"])
+    }
+    func testLiveEditIsRejectedByTheProtocolValidator() throws {
+        var validator = ProtocolValidator(sessionID: "test-session")
+        func validate(_ fields: [String: Any], seq: Int) throws {
+            let body = try JSONSerialization.data(withJSONObject: fields.merging(["type": "edit", "v": 2, "sessionID": "test-session", "seq": seq]) { _, new in new })
+            _ = try validator.validate(body, now: 1)
+        }
+        XCTAssertThrowsError(try validate(["delete": 0, "text": ""], seq: 1))          // nothing to do
+        XCTAssertThrowsError(try validate(["delete": -1, "text": "a"], seq: 1))        // negative removal
+        XCTAssertThrowsError(try validate(["delete": 5_000, "text": "a"], seq: 1))     // removal beyond the cap
+        XCTAssertThrowsError(try validate(["delete": 0, "text": String(repeating: "中", count: 1_400)], seq: 1))
+        XCTAssertNoThrow(try validate(["delete": 3, "text": "👩🏽‍💻"], seq: 1))
+    }
     func testBackspaceCannotInterruptHeldDrag() throws {
         let backend = FakeBackend(), executor = MouseEventExecutor(backend: backend)
         try executor.execute(message("drag", ["phase": "begin", "dx": 0, "dy": 0]))
@@ -94,44 +156,42 @@ final class InputTests: XCTestCase {
         executor.reset()
         try executor.execute(message("backspace")); XCTAssertEqual(backend.backspaces, 1)
     }
-    private func makeState(_ backend: FakeBackend) throws -> (ControlState, String, String) {
-        let state = ControlState(store: try CredentialStore(file: nil), executor: MouseEventExecutor(backend: backend), name: "Test")
-        let token = try state.beginPairing(), credential = try state.pair(token: token, name: "Phone", peer: "1")
-        let id = try XCTUnwrap(state.acquire(token: credential, disconnect: { _ in }).id)
-        return (state, credential, id)
+    private func makeState(_ backend: FakeBackend) throws -> (ControlState, String) {
+        let state = ControlState(executor: MouseEventExecutor(backend: backend), name: "Test")
+        let id = state.acquire(label: "Test", disconnect: { _ in })
+        return (state, id)
     }
     func testAllSessionTerminationPathsReleaseDrag() throws {
-        for path in ["release", "disconnect", "suspend", "revoke", "permission"] {
-            let backend = FakeBackend(), (state, _, id) = try makeState(backend)
+        for path in ["release", "disconnect", "suspend", "permission"] {
+            let backend = FakeBackend(), (state, id) = try makeState(backend)
             _ = try state.process(data("drag", session: id, ["phase": "begin", "dx": 12, "dy": 0]), sessionID: id)
             switch path {
             case "release": state.release(id: id) // Socket close, heartbeat and protocol failures use this path.
             case "disconnect": state.disconnect()
             case "suspend": state.setSuspended(true)
-            case "revoke": try state.revoke(id: XCTUnwrap(state.snapshot().devices.first).id)
             default: backend.permitted = false; _ = state.snapshot()
             }
             state.disconnect()
             XCTAssertEqual(backend.events.filter { $0 == .leftMouseUp }.count, 1, path)
         }
     }
-    func testPasteDeduplicatesAcrossReconnectAndRejectsChangedText() throws {
-        let backend = FakeBackend(), (state, credential, first) = try makeState(backend)
+    func testPasteDeduplicatesAcrossSessionsAndRejectsChangedText() throws {
+        let backend = FakeBackend(), (state, first) = try makeState(backend)
         let requestID = try XCTUnwrap(state.ready(id: first)["pasteEpoch"] as? String) + ":dedupe"
         func paste(_ id: String, _ seq: Int, _ text: String) throws -> [String: Any] {
             let parsed = try state.process(data("paste", session: id, seq: seq, ["requestID": requestID, "text": text]), sessionID: id)
             return state.paste(parsed, sessionID: id)
         }
         XCTAssertEqual(try paste(first, 1, "原文")["status"] as? String, "executed")
-        state.release(id: first)
-        let second = try XCTUnwrap(state.acquire(token: credential, disconnect: { _ in }).id)
+        // A second phone asking with the same request gets the stored receipt, not a second paste.
+        let second = state.acquire(label: "Test", disconnect: { _ in })
         let duplicate = try paste(second, 1, "原文")
         XCTAssertEqual(duplicate["duplicate"] as? Bool, true); XCTAssertEqual(duplicate["status"] as? String, "executed")
         XCTAssertEqual(try paste(second, 2, "修改后")["status"] as? String, "id_conflict")
         XCTAssertEqual(backend.clipboard, ["原文"]); XCTAssertEqual(backend.shortcuts, 1)
     }
     func testFailureReceiptIsNotRetriedAndOldEpochIsRejected() throws {
-        let backend = FakeBackend(), (state, _, id) = try makeState(backend)
+        let backend = FakeBackend(), (state, id) = try makeState(backend)
         let epoch = try XCTUnwrap(state.ready(id: id)["pasteEpoch"] as? String)
         let request = try message("paste", session: id, ["requestID": epoch + ":failure", "text": "原文"])
         backend.writes = false
@@ -143,7 +203,7 @@ final class InputTests: XCTestCase {
         XCTAssertEqual(backend.clipboard.count, 1); XCTAssertEqual(backend.shortcuts, 0)
     }
     func testReceiptLimitNeverEvictsAnExecutedRequest() throws {
-        let backend = FakeBackend(), (state, _, id) = try makeState(backend)
+        let backend = FakeBackend(), (state, id) = try makeState(backend)
         let epoch = try XCTUnwrap(state.ready(id: id)["pasteEpoch"] as? String)
         for i in 1...1024 {
             let request = try message("paste", session: id, ["requestID": epoch + ":\(i)", "text": "text"])
@@ -154,13 +214,5 @@ final class InputTests: XCTestCase {
         let oldest = try message("paste", session: id, ["requestID": epoch + ":1", "text": "text"])
         XCTAssertEqual(state.paste(oldest, sessionID: id)["duplicate"] as? Bool, true)
         XCTAssertEqual(backend.shortcuts, 1024)
-    }
-    func testHTTPSPolicyIsSchemeBoundAndUsesSeparateCookie() {
-        let policy = AccessPolicy(hosts: ["127.0.0.1:9876"], secure: true)
-        XCTAssertTrue(policy.accepts(host: "127.0.0.1:9876", origin: "https://127.0.0.1:9876", requiresOrigin: true))
-        XCTAssertFalse(policy.accepts(host: "127.0.0.1:9876", origin: "http://127.0.0.1:9876", requiresOrigin: true))
-        let token = String(repeating: "a", count: 43)
-        XCTAssertNil(AccessPolicy.credential(cookie: "sofapad=" + token, secure: true))
-        XCTAssertEqual(AccessPolicy.credential(cookie: "__Host-sofapad=" + token, secure: true), token)
     }
 }

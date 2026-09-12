@@ -12,6 +12,8 @@ public protocol SystemInputBackend: AnyObject {
     func writeClipboard(_ text: String) -> Bool
     func pasteShortcut() -> Bool
     func backspace()
+    func returnKey()
+    func typeText(_ text: String)
 }
 
 public final class MouseEventExecutor: InputExecutor {
@@ -66,10 +68,19 @@ public final class MouseEventExecutor: InputExecutor {
             let dx = Int32(scrollRemainder.x.rounded(.towardZero)), dy = Int32(scrollRemainder.y.rounded(.towardZero))
             scrollRemainder.x -= Double(dx); scrollRemainder.y -= Double(dy)
             if dx != 0 || dy != 0 { backend.scroll(dx: dx, dy: dy) }
+        case "edit":
+            guard !dragging else { return }
+            previousClick = nil
+            for _ in 0..<(message.delete ?? 0) { backend.backspace() }
+            if let text = message.text, !text.isEmpty { backend.typeText(text) }
         case "backspace":
             guard !dragging else { return }
             previousClick = nil
             backend.backspace()
+        case "enter":
+            guard !dragging else { return }
+            previousClick = nil
+            backend.returnKey()
         default: break
         }
     }
@@ -124,12 +135,34 @@ public final class QuartzInputBackend: SystemInputBackend {
         return true
     }
     public func backspace() {
-        guard permitted, let events = Self.backspaceEvents(source: source) else { return }
+        guard permitted, let events = Self.keyEvents(CGKeyCode(kVK_Delete), source: source) else { return }
         for event in events { event.post(tap: .cghidEventTap) }
     }
-    static func backspaceEvents(source: CGEventSource?) -> [CGEvent]? {
-        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Delete), keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_Delete), keyDown: false) else { return nil }
+    /// A real Return press: the target app decides newline, confirm or submit.
+    public func returnKey() {
+        guard permitted, let events = Self.keyEvents(CGKeyCode(kVK_Return), source: source) else { return }
+        for event in events { event.post(tap: .cghidEventTap) }
+    }
+    /// Synthesized text for live typing. Chunked because a single event carries a
+    /// limited Unicode string; no keycodes, modifiers, clipboard or focus changes.
+    public func typeText(_ text: String) {
+        guard permitted else { return }
+        let units = Array(text.utf16)
+        var index = 0
+        while index < units.count {
+            let end = min(index + 20, units.count), chunk = Array(units[index..<end])
+            guard let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                  let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else { return }
+            chunk.withUnsafeBufferPointer { buffer in
+                down.keyboardSetUnicodeString(stringLength: buffer.count, unicodeString: buffer.baseAddress!)
+            }
+            down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
+            index = end
+        }
+    }
+    static func keyEvents(_ code: CGKeyCode, source: CGEventSource?) -> [CGEvent]? {
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false) else { return nil }
         // Prepare both events before posting; no modifiers, repeat, focus change or clipboard access.
         for event in [down, up] { event.flags = []; event.setIntegerValueField(.keyboardEventAutorepeat, value: 0) }
         return [down, up]

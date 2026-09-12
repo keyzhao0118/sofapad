@@ -1,12 +1,12 @@
 import type { Action } from './gesture.js';
 
-export type ConnectionState = 'connecting' | 'connected' | 'permission' | 'unpaired' | 'busy' | 'paused' | 'offline' | 'error';
+export type ConnectionState = 'connecting' | 'connected' | 'permission' | 'paused' | 'offline' | 'error';
 type Update = { state: ConnectionState; detail: string; name?: string; rtt?: number; doubleClickMs?: number; preview?: boolean };
 export type PasteOutcome = 'executed' | 'uncertain' | 'not_sent' | 'permission' | 'clipboard_failed' | 'unavailable' | 'busy' | 'too_large' | 'expired' | 'id_conflict' | 'limit';
+/** Server limits for one live edit message. */
+const maxEditDelete = 128;
+const maxEditBytes = 512;
 const reasons: Record<string, string> = {
-  busy: '另一台手机或标签页正在控制。请先断开它，再重试。',
-  revoked: '此浏览器的配对已移除，请在 Mac 上重新开启配对。',
-  unpaired: '在 Mac 菜单栏打开 SofaPad，开启配对并扫码。',
   host_disconnect: 'Mac 已主动断开。需要时点击重新连接。',
   host_paused: 'Mac 已锁屏或进入睡眠。解锁后点击重新连接。',
   host_stopped: 'Mac 已关闭控制服务。开启后点击重新连接。',
@@ -30,41 +30,59 @@ export class ConnectionClient {
   private ready = false;
   private permitted = false;
   private supportsBackspace = false;
+  private supportsEdit = false;
+  private supportsEnter = false;
   private name = '你的 Mac';
   private pasteEpoch?: string;
   private pendingPaste?: { id: string; sent: boolean; resolve: (result: PasteOutcome) => void; timer: ReturnType<typeof setTimeout> };
   constructor(private update: (update: Update) => void, private cancelGesture: () => void) {}
   get enabled() { return this.ready && this.permitted; }
   get canBackspace() { return this.enabled && this.supportsBackspace && !this.pendingPaste; }
+  get canEdit() { return this.enabled && this.supportsEdit; }
+  get canEnter() { return this.enabled && this.supportsEnter; }
+  /** A real Return press on the Mac: newline, confirm or submit is up to the target app. */
+  enter(): boolean {
+    if (!this.canEnter) return false;
+    return this.transmit({ type: 'enter' });
+  }
+  /** Live typing: backspaces first, then the committed text, split to the server limits. */
+  edit(remove: number, text: string): boolean {
+    if (!this.canEdit) return false;
+    let sent = true;
+    for (let left = remove; left > 0; left -= maxEditDelete) {
+      sent = this.transmit({ type: 'edit', delete: Math.min(left, maxEditDelete) }) && sent;
+    }
+    const encoder = new TextEncoder();
+    let chunk = '', bytes = 0;
+    for (const character of text) {
+      const size = encoder.encode(character).length;
+      if (bytes + size > maxEditBytes && chunk) {
+        sent = this.transmit({ type: 'edit', text: chunk }) && sent; chunk = ''; bytes = 0;
+      }
+      chunk += character; bytes += size;
+    }
+    if (chunk) sent = this.transmit({ type: 'edit', text: chunk }) && sent;
+    return sent;
+  }
   backspace() {
     if (!this.canBackspace) return false;
     return this.transmit({ type: 'backspace' });
   }
 
-  async connect(pairToken?: string) {
+  async connect() {
     if (this.hidden) return;
     this.manual = false; this.clear();
     const generation = this.generation;
-    this.update({ state: 'connecting', detail: pairToken ? '正在与 Mac 配对…' : '正在连接 Mac…' });
+    this.update({ state: 'connecting', detail: '正在连接 Mac…' });
     const abort = new AbortController(), timeout = setTimeout(() => abort.abort(), 4000);
     try {
-      if (pairToken) {
-        const response = await fetch('/api/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: pairToken, name: /iPhone/.test(navigator.userAgent) ? 'iPhone Safari' : '网页浏览器' }), signal: abort.signal });
-        if (!response.ok) {
-          if (generation !== this.generation) return;
-          this.manual = true;
-          this.update({ state: 'unpaired', detail: response.status === 429 ? '配对尝试过多，请等待一分钟。' : '二维码已使用或过期。请在 Mac 上重新开启配对并扫码。' }); return;
-        }
-      }
       const response = await fetch('/api/status', { cache: 'no-store', signal: abort.signal });
       if (!response.ok) throw new Error('status');
       const status = await response.json();
       if (generation !== this.generation) return;
       this.name = status.name;
       this.update({ state: 'connecting', detail: '正在建立控制连接…', name: this.name, preview: status.preview });
-      if (!status.authenticated) { this.manual = true; this.update({ state: 'unpaired', detail: reasons.unpaired }); return; }
-      const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
+      const socket = new WebSocket(`ws://${location.host}/ws`);
       this.socket = socket;
       this.deadline = setTimeout(() => { if (!this.ready && generation === this.generation) this.fail(); }, 5000);
       socket.onopen = () => { if (generation === this.generation) socket.send(JSON.stringify({ type: 'hello', v: 2 })); };
@@ -118,6 +136,8 @@ export class ConnectionClient {
     if (message.type === 'ready' && message.v === 2 && typeof message.sessionID === 'string') {
       this.ready = true; this.sessionID = message.sessionID; this.seq = 0; this.attempt = 0;
       this.supportsBackspace = Array.isArray(message.capabilities) && message.capabilities.includes('backspace');
+      this.supportsEdit = Array.isArray(message.capabilities) && message.capabilities.includes('edit');
+      this.supportsEnter = Array.isArray(message.capabilities) && message.capabilities.includes('enter');
       this.pasteEpoch = message.pasteEpoch;
       this.lastPong = performance.now(); clearTimeout(this.deadline);
       this.setPermission(message.permitted === true);
@@ -143,7 +163,7 @@ export class ConnectionClient {
       if (['host_paused', 'host_stopped'].includes(reason)) { this.fail();
       } else if (reasons[reason]) {
         this.manual = true; this.clear();
-        this.update({ state: reason === 'busy' ? 'busy' : ['unpaired', 'revoked'].includes(reason) ? 'unpaired' : 'paused', detail: reasons[reason] });
+        this.update({ state: 'paused', detail: reasons[reason] });
       } else { this.fail(); }
     }
   }
@@ -156,14 +176,6 @@ export class ConnectionClient {
     this.transmit({ type: 'disconnect' }); this.manual = true; this.clear();
     this.update({ state: 'paused', detail: '已断开，需要时点击重新连接。' });
   }
-  async forget() {
-    this.disconnect();
-    try {
-      const response = await fetch('/api/forget', { method: 'POST', signal: AbortSignal.timeout(4000) });
-      if (!response.ok) throw new Error('forget');
-      this.update({ state: 'unpaired', detail: '已忘记此 Mac。再次使用时请重新扫码配对。' });
-    } catch { this.update({ state: 'error', detail: '无法联系 Mac，尚未移除配对。请重试或在 Mac 端移除此浏览器。' }); }
-  }
   visibility(hidden: boolean) {
     this.hidden = hidden;
     if (hidden) { this.transmit({ type: 'disconnect' }); this.clear(); }
@@ -173,7 +185,7 @@ export class ConnectionClient {
   private clear() {
     this.finishPaste(this.pendingPaste?.sent ? 'uncertain' : 'not_sent'); this.pasteEpoch = undefined;
     this.generation++; this.ready = false; this.permitted = false; this.sessionID = undefined;
-    this.supportsBackspace = false;
+    this.supportsBackspace = false; this.supportsEdit = false; this.supportsEnter = false;
     this.cancelGesture(); clearTimeout(this.retry); clearTimeout(this.deadline); clearInterval(this.heartbeat); this.pings.clear();
     const socket = this.socket; this.socket = undefined;
     if (socket) { socket.onclose = null; socket.onmessage = null; socket.close(); }

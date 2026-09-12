@@ -306,5 +306,88 @@
     "messages": [
       "{\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"type\":\"key\",\"keyCode\":36}"
     ]
+  },
+  {
+    "name": "enter",
+    "valid": true,
+    "messages": [
+      "{\"type\":\"enter\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1}"
+    ]
+  },
+  {
+    "name": "enter-during-drag",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"drag\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"dx\":0,\"dy\":0,\"phase\":\"begin\"}",
+      "{\"type\":\"enter\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":2}"
+    ]
+  },
+  {
+    "name": "enter-during-scroll",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"scroll\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"dx\":0,\"dy\":5,\"phase\":\"begin\"}",
+      "{\"type\":\"enter\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":2}"
+    ]
+  },
+  {
+    "name": "edit typing",
+    "valid": true,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":0,\"text\":\"a\"}",
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"delete\":0,\"text\":\"中文 🙂\"}"
+    ]
+  },
+  {
+    "name": "edit delete and retype",
+    "valid": true,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":3,\"text\":\"llo\"}"
+    ]
+  },
+  {
+    "name": "edit-delete-only",
+    "valid": true,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":1,\"text\":\"\"}"
+    ]
+  },
+  {
+    "name": "edit-empty",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":0,\"text\":\"\"}"
+    ]
+  },
+  {
+    "name": "edit-negative-delete",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":-1,\"text\":\"a\"}"
+    ]
+  },
+  {
+    "name": "edit-delete-beyond-cap",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"delete\":5000,\"text\":\"a\"}"
+    ]
+  },
+  {
+    "name": "edit-during-drag",
+    "valid": false,
+    "messages": [
+      "{\"type\":\"drag\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"dx\":0,\"dy\":0,\"phase\":\"begin\"}",
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"delete\":1,\"text\":\"a\"}"
+    ]
+  },
+  {
+    "name": "edit-after-drag-end",
+    "valid": true,
+    "messages": [
+      "{\"type\":\"drag\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":1,\"dx\":0,\"dy\":0,\"phase\":\"begin\"}",
+      "{\"type\":\"drag\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":2,\"dx\":0,\"dy\":0,\"phase\":\"end\"}",
+      "{\"type\":\"edit\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":3,\"delete\":2,\"text\":\"ok\"}"
+    ]
   }
 ]

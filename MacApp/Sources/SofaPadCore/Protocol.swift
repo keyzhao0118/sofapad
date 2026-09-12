@@ -16,6 +16,7 @@ public struct InputMessage: Decodable {
     public let nonce: String?
     public let requestID: String?
     public let text: String?
+    public let delete: Int?
 }
 
 /// One validator per socket. No queued input survives its lifetime.
@@ -76,7 +77,12 @@ public struct ProtocolValidator {
                   id.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 || $0 == 58 }) else {
                 throw ProtocolFailure.invalid
             }
-        case "backspace":
+        case "edit":
+            // Live typing: backspaces first, then the committed text. No keycodes.
+            let removal = message.delete ?? 0, inserted = message.text ?? ""
+            guard !scrolling, !dragging, (0...1_024).contains(removal), inserted.utf8.count <= 4_096,
+                  removal > 0 || !inserted.isEmpty else { throw ProtocolFailure.invalid }
+        case "backspace", "enter":
             guard !scrolling, !dragging else { throw ProtocolFailure.invalid }
         case "ping":
             guard let nonce = message.nonce, nonce.count <= 64 else { throw ProtocolFailure.invalid }

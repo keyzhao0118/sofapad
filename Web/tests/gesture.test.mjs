@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GestureEngine } from '../dist/gesture.js';
 
-function setup() { const events = []; const engine = new GestureEngine(e => events.push(e)); return { engine, events }; }
+function setup() { const events = []; const sides = []; const engine = new GestureEngine(e => events.push(e), s => sides.push(s)); return { engine, events, sides }; }
 function tap(e, time = 0, id = 1) { e.down(id, 100, 100, time); e.up(id, 102, 100, time + 60); }
 test('double tap is two clicks with counts 1,2, never a third click', () => {
   const { engine, events } = setup(); tap(engine); tap(engine, 180);
@@ -114,31 +114,61 @@ test('tap then hold and move drags, preserving total displacement without an ext
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const { engine, events } = setup(); tap(engine); engine.down(1, 100, 100, 180);
   t.mock.timers.tick(800); assert.equal(events.length, 1); // Second tap reserves drag, not long-press right-click.
-  engine.move(1, 104, 100); assert.equal(events.length, 1);
-  engine.move(1, 120, 110); engine.move(1, 140, 120); engine.up(1, 140, 120, 1100);
+  engine.move(1, 104, 100, 980); assert.equal(events.length, 1);
+  engine.move(1, 120, 110, 1000); engine.move(1, 140, 120, 1020); engine.up(1, 140, 120, 1100);
   assert.deepEqual(events.filter(e => e.type === 'click'), [{ type: 'click', button: 'left', count: 1 }]);
   const drag = events.filter(e => e.type === 'drag');
   assert.equal(drag[0].phase, 'begin'); assert.equal(drag.at(-1).phase, 'end');
   assert.equal(drag.reduce((sum, e) => sum + e.dx, 0), 40); assert.equal(drag.reduce((sum, e) => sum + e.dy, 0), 20);
   tap(engine, 1200); assert.equal(events.at(-1).count, 1); // Drag ends the earlier double-click chain.
 });
+test('repeated pointer swipes never turn into tap-then-drag', () => {
+  const { engine, events } = setup();
+  // The user's report: swipe to move, lift, press again and swipe. A stray tap in between
+  // used to arm "press and drag", so the next swipe dragged instead of moving the pointer.
+  tap(engine, 0);
+  for (const start of [200, 500, 800]) {
+    engine.down(1, 100, 100, start);
+    engine.move(1, 102, 140, start + 30); engine.move(1, 104, 200, start + 60);
+    engine.up(1, 104, 200, start + 90);
+  }
+  assert.equal(events.filter(e => e.type === 'click').length, 1, 'only the deliberate tap clicks');
+  assert.equal(events.some(e => e.type === 'drag'), false, 'no swipe became a drag');
+  assert.equal(events.filter(e => e.type === 'move').length, 9, 'two real moves per swipe plus the zero-delta replay on release');
+});
+test('a press that settles before sliding still drags after a tap', () => {
+  const { engine, events } = setup(); tap(engine, 0);
+  engine.down(1, 100, 100, 180); engine.move(1, 103, 102, 300); engine.move(1, 120, 130, 360);
+  engine.up(1, 120, 130, 400);
+  assert.equal(events.filter(e => e.type === 'move').length, 0, 'a settled press does not move the pointer');
+  const drag = events.filter(e => e.type === 'drag');
+  assert.equal(drag[0].phase, 'begin'); assert.equal(drag.at(-1).phase, 'end');
+  assert.equal(drag.reduce((sum, e) => sum + e.dx, 0), 20);
+});
+test('a press that starts sliding immediately after a tap moves the pointer', () => {
+  const { engine, events } = setup(); tap(engine, 0);
+  engine.down(1, 100, 100, 180); engine.move(1, 104, 130, 210); engine.move(1, 106, 170, 240);
+  engine.up(1, 106, 170, 260);
+  assert.equal(events.some(e => e.type === 'drag'), false);
+  assert.equal(events.filter(e => e.type === 'move').length, 3);
+});
 test('second tap must join within time and position bounds before becoming a drag', () => {
   for (const [time, x] of [[700, 100], [180, 200]]) {
     const { engine, events } = setup(); tap(engine); engine.down(1, x, 100, time);
-    engine.move(1, x + 30, 100); engine.up(1, x + 30, 100, time + 80);
+    engine.move(1, x + 30, 100, time + 340); engine.up(1, x + 30, 100, time + 360);
     assert.ok(events.some(e => e.type === 'move')); assert.equal(events.some(e => e.type === 'drag'), false);
   }
 });
 test('additional finger during tap-drag cancels once and blocks the remaining contacts', () => {
-  const { engine, events } = setup(); tap(engine); engine.down(1, 100, 100, 180); engine.move(1, 120, 100);
-  engine.down(2, 200, 100, 240); engine.move(1, 180, 100); engine.move(2, 250, 100);
-  engine.up(1, 180, 100, 300); engine.up(2, 250, 100, 320);
+  const { engine, events } = setup(); tap(engine); engine.down(1, 100, 100, 180); engine.move(1, 120, 100, 360);
+  engine.down(2, 200, 100, 380); engine.move(1, 180, 100, 400); engine.move(2, 250, 100, 420);
+  engine.up(1, 180, 100, 440); engine.up(2, 250, 100, 460);
   assert.deepEqual(events.map(e => e.type === 'click' ? 'click' : e.phase), ['click', 'begin', 'cancel']);
 });
 test('tap-drag uses the same reset and capture-loss release paths as three-finger drag', () => {
   for (const cancel of [e => e.reset(), e => e.cancel(), e => e.cancelContact(1)]) {
-    const { engine, events } = setup(); tap(engine); engine.down(1, 100, 100, 180); engine.move(1, 130, 100);
-    cancel(engine); engine.up(1, 130, 100, 300);
+    const { engine, events } = setup(); tap(engine); engine.down(1, 100, 100, 180); engine.move(1, 130, 100, 360);
+    cancel(engine); engine.up(1, 130, 100, 400);
     assert.deepEqual(events.map(e => e.type === 'click' ? 'click' : e.phase), ['click', 'begin', 'cancel']);
   }
 });
@@ -149,6 +179,59 @@ test('holding and releasing a second tap without moving adds no click or drag; t
   tap(engine, 1200); tap(engine, 1380); assert.deepEqual(events.map(e => e.count), [1, 1, 2]);
 });
 
+test('a vertical drag inside the visible band scrolls and lights the strip it belongs to', () => {
+  for (const [side, x] of [['left', 50], ['right', 340]]) {
+    const { engine, events, sides } = setup(); engine.down(1, x, 100, 0, 'pointer', side);
+    engine.move(1, x + 2, 130); engine.move(1, x + 4, 170); engine.up(1, x + 4, 170, 200);
+    assert.equal(events[0].phase, 'begin'); assert.equal(events.at(-1).phase, 'end');
+    assert.ok(events.every(e => e.type === 'scroll' && e.dx === 0));
+    assert.equal(events.reduce((sum, e) => sum + e.dy, 0), 70);
+    assert.deepEqual(sides, [side, undefined], 'the strip highlights while scrolling and clears on release');
+  }
+});
+test('the band leaves taps, horizontal drags and the deliberate tap-drag as pointer input', () => {
+  const horizontal = setup(); horizontal.engine.down(1, 50, 100, 0, 'pointer', 'left');
+  horizontal.engine.move(1, 90, 104); horizontal.engine.up(1, 90, 104, 100);
+  assert.ok(horizontal.events.every(e => e.type === 'move')); assert.deepEqual(horizontal.sides, []);
+  const tapped = setup(); tapped.engine.down(1, 50, 100, 0, 'pointer', 'left'); tapped.engine.up(1, 51, 100, 60);
+  assert.deepEqual(tapped.events, [{ type: 'click', button: 'left', count: 1 }]);
+  const dragged = setup(); dragged.engine.down(1, 50, 100, 0, 'pointer', 'left'); dragged.engine.up(1, 50, 100, 60);
+  dragged.engine.down(1, 50, 100, 200, 'pointer', 'left'); dragged.engine.move(1, 54, 140, 380); dragged.engine.up(1, 54, 140, 400);
+  assert.ok(dragged.events.some(e => e.type === 'drag')); assert.equal(dragged.events.some(e => e.type === 'scroll'), false);
+});
+test('a noisy first sample in the band waits for more evidence instead of moving the pointer', () => {
+  const { engine, events, sides } = setup(); engine.down(1, 50, 100, 0, 'pointer', 'left');
+  engine.move(1, 59, 106);                       // 9 across, 6 along: still ambiguous
+  assert.deepEqual(events, [], 'no pointer movement while the direction is unclear');
+  engine.move(1, 61, 140); engine.move(1, 62, 180); engine.up(1, 62, 180, 200);
+  assert.ok(events.every(e => e.type === 'scroll' && e.dx === 0));
+  assert.equal(events[0].phase, 'begin'); assert.equal(events.at(-1).phase, 'end');
+  assert.equal(events.reduce((sum, e) => sum + e.dy, 0), 80);
+  assert.deepEqual(sides, ['left', undefined]);
+});
+test('a clearly horizontal band drag moves the pointer at the usual distance', () => {
+  const { engine, events, sides } = setup(); engine.down(1, 50, 100, 0, 'pointer', 'left');
+  engine.move(1, 60, 102);                        // 10 across, 2 along: decisive
+  assert.equal(events.length, 1); assert.equal(events[0].type, 'move');
+  engine.up(1, 70, 104, 100);
+  assert.equal(events.some(e => e.type === 'scroll'), false); assert.deepEqual(sides, []);
+});
+test('a short ambiguous band drag stays silent rather than guessing', () => {
+  const { engine, events, sides } = setup(); engine.down(1, 50, 100, 0, 'pointer', 'left');
+  engine.move(1, 58, 106); engine.up(1, 58, 106, 120);
+  assert.deepEqual(events, []); assert.deepEqual(sides, []);
+});
+test('a contact with no band keeps moving the pointer, however vertically it drags', () => {
+  const { engine, events, sides } = setup(); engine.down(1, 200, 100, 0);
+  engine.move(1, 202, 140); engine.up(1, 202, 140, 200);
+  assert.ok(events.every(e => e.type === 'move')); assert.deepEqual(sides, []);
+});
+test('a second contact during a band scroll cancels it and clears the highlight', () => {
+  const { engine, events, sides } = setup(); engine.down(1, 50, 100, 0, 'pointer', 'left');
+  engine.move(1, 50, 140); engine.down(2, 200, 140, 40);
+  engine.up(1, 50, 140, 80); engine.up(2, 200, 140, 100);
+  assert.deepEqual(events.map(e => e.phase), ['begin', 'cancel']); assert.deepEqual(sides, ['left', undefined]);
+});
 test('edge scroll accumulates vertical slop, stays vertical across the panel and ends once', () => {
   const { engine, events } = setup(); engine.down(1, 12, 100, 0, 'scroll');
   engine.move(1, 80, 103); assert.deepEqual(events, []);
@@ -190,8 +273,8 @@ test('edge joins cancel pending holds and active drags without generating right 
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const { engine, events } = setup(); engine.down(1, 100, 100, 0); engine.down(2, 12, 100, 30, 'scroll');
   t.mock.timers.tick(1000); engine.up(1, 100, 100, 1030); engine.up(2, 12, 100, 1050);
-  assert.deepEqual(events, []); tap(engine, 1200); engine.down(1, 100, 100, 1380); engine.move(1, 150, 100);
-  engine.down(2, 12, 100, 1400, 'scroll'); engine.up(1, 150, 100, 1500); engine.up(2, 12, 100, 1510);
+  assert.deepEqual(events, []); tap(engine, 1200); engine.down(1, 100, 100, 1380); engine.move(1, 150, 100, 1560);
+  engine.down(2, 12, 100, 1580, 'scroll'); engine.up(1, 150, 100, 1600); engine.up(2, 12, 100, 1620);
   assert.deepEqual(events.map(e => e.type === 'click' ? e.button : e.phase), ['left', 'begin', 'cancel']);
 });
 test('edge capture loss or reset cancels exactly once', () => {

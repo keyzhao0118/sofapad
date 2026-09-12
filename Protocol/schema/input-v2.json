@@ -361,6 +361,67 @@
         "sessionID",
         "seq"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "enter"
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "edit"
+        },
+        "delete": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq"
+      ]
     }
   ]
 }

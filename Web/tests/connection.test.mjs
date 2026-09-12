@@ -11,10 +11,10 @@ function setup(t) {
     constructor() { sockets.push(this); }
     send(data) { this.sent.push(JSON.parse(data)); }
     close() { this.readyState = 3; }
-    ready(id = 'session-1', capabilities = ['backspace']) { this.onopen(); this.onmessage({ data: JSON.stringify({ type: 'ready', v: 2, sessionID: id, pasteEpoch: '11111111-2222-3333-4444-555555555555', name: 'Mac', permitted: true, doubleClickInterval: 0.5, ...(capabilities ? { capabilities } : {}) }) }); }
+    ready(id = 'session-1', capabilities = ['backspace', 'edit']) { this.onopen(); this.onmessage({ data: JSON.stringify({ type: 'ready', v: 2, sessionID: id, pasteEpoch: '11111111-2222-3333-4444-555555555555', name: 'Mac', permitted: true, doubleClickInterval: 0.5, ...(capabilities ? { capabilities } : {}) }) }); }
     receive(message) { this.onmessage({ data: JSON.stringify(message) }); }
   }
-  t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ name: 'Mac', authenticated: true }) }));
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ name: 'Mac', permitted: true, v: 2 }) }));
   const originalSocket = globalThis.WebSocket, originalLocation = globalThis.location;
   globalThis.WebSocket = Socket; globalThis.location = { protocol: 'http:', host: '127.0.0.1:9876' };
   let cancellations = 0;
@@ -29,7 +29,7 @@ test('input is gated by ready and permission, revocation stops it immediately', 
   client.send(move); assert.equal(socket.sent.length, 0);
   socket.ready(); client.send(move); assert.equal(socket.sent.at(-1).seq, 1);
   socket.receive({ type: 'status', permitted: false }); client.send(move); assert.equal(socket.sent.length, 2);
-  socket.receive({ type: 'disconnect', reason: 'revoked' }); assert.equal(updates.at(-1).state, 'unpaired');
+  socket.receive({ type: 'disconnect', reason: 'host_disconnect' }); assert.equal(updates.at(-1).state, 'paused');
   t.mock.timers.tick(30000); assert.equal(sockets.length, 1);
 });
 test('manual disconnect survives background and foreground transitions', async t => {
@@ -53,10 +53,10 @@ test('large deltas preserve their sum and obey server bounds', async t => {
   assert.equal(events.reduce((sum, e) => sum + e.dx, 0), 4000);
   assert.ok(events.every(e => Math.abs(e.dx) <= 2000));
 });
-test('busy response does not keep reconnecting or steal control', async t => {
+test('a host disconnect stops this round of retries without reconnecting', async t => {
   const { client, sockets, updates } = setup(t); await client.connect();
-  sockets[0].receive({ type: 'disconnect', reason: 'busy' });
-  t.mock.timers.tick(30000); assert.equal(sockets.length, 1); assert.equal(updates.at(-1).state, 'busy');
+  sockets[0].receive({ type: 'disconnect', reason: 'host_disconnect' });
+  t.mock.timers.tick(30000); assert.equal(sockets.length, 1); assert.equal(updates.at(-1).state, 'paused');
 });
 
 test('paste preserves exact text and matches acknowledgements; concurrent send is refused', async t => {
@@ -102,6 +102,23 @@ test('backspace requires readiness, host capability and permission, and sends on
   assert.equal(sockets[1].sent.filter(m => m.type === 'backspace').length, 1);
   sockets[1].onclose(); await client.connect(); sockets[2].ready('session-2');
   assert.equal(sockets[2].sent.some(m => m.type === 'backspace'), false);
+});
+test('live edits need readiness, the host capability and permission, and split at the server limits', async t => {
+  const { client, sockets } = setup(t);
+  assert.equal(client.edit(1, 'a'), false);
+  await client.connect(); sockets[0].ready('old-host', ['backspace']);
+  assert.equal(client.canEdit, false); assert.equal(client.edit(0, 'a'), false);
+  await client.connect(); sockets[1].ready();
+  assert.equal(client.canEdit, true);
+  assert.equal(client.edit(130, '中'.repeat(300)), true);
+  const edits = sockets[1].sent.filter(m => m.type === 'edit');
+  assert.deepEqual(edits.map(m => m.delete ?? 0), [128, 2, 0, 0]);
+  assert.ok(edits.every(m => m.v === 2 && Number.isInteger(m.seq)));
+  assert.equal(edits.filter(m => m.text).map(m => m.text).join(''), '中'.repeat(300));
+  assert.ok(edits.filter(m => m.text).every(m => new TextEncoder().encode(m.text).length <= 512));
+  sockets[1].receive({ type: 'status', permitted: false });
+  assert.equal(client.edit(0, 'x'), false);
+  assert.equal(sockets[1].sent.filter(m => m.type === 'edit').length, edits.length);
 });
 test('backspace is not queued behind paste or a congested connection', async t => {
   const { client, sockets } = setup(t); await client.connect(); const socket = sockets[0]; socket.ready();

@@ -9,27 +9,24 @@ import json
 import os
 from pathlib import Path
 import socket
-import ssl
 import struct
 import subprocess
 import tempfile
 import time
 import unittest
-from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class WS:
-    def __init__(self, port, cookie, origin=None, host=None, context=None):
+    def __init__(self, port, origin=None, host=None):
         self.socket = socket.create_connection(('127.0.0.1', port), timeout=4)
-        if context: self.socket = context.wrap_socket(self.socket, server_hostname='127.0.0.1')
         self.socket.settimeout(9)
         self.reader = self.socket.makefile('rb')
-        origin = origin if origin is not None else f'{"https" if context else "http"}://127.0.0.1:{port}'
+        origin = origin if origin is not None else f'http://127.0.0.1:{port}'
         host = host or f'127.0.0.1:{port}'
         key = base64.b64encode(os.urandom(16)).decode()
-        headers = f'GET /ws HTTP/1.1\r\nHost: {host}\r\nOrigin: {origin}\r\nCookie: {cookie}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n'
+        headers = f'GET /ws HTTP/1.1\r\nHost: {host}\r\nOrigin: {origin}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n'
         self.socket.sendall(headers.encode())
         status_line = self.reader.readline().split()
         self.status = int(status_line[1]) if len(status_line) > 1 else 0
@@ -67,71 +64,84 @@ class WS:
 
 
 class ServerTests(unittest.TestCase):
-    secure = False
-    context = None
     @classmethod
     def setUpClass(cls):
         cls.directory = tempfile.TemporaryDirectory(prefix='sofapad-integration-')
-        cls.pair_file = Path(cls.directory.name) / 'pair.json'
+        cls.info_file = Path(cls.directory.name) / 'server.json'
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 0)); cls.port = probe.getsockname()[1]
-        cls.origin = f'{"https" if cls.secure else "http"}://127.0.0.1:{cls.port}'
-        tls_args = []
-        if cls.secure:
-            cert = Path(cls.directory.name) / 'certificate.pem'; key = Path(cls.directory.name) / 'private-key.pem'
-            subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', str(key), '-out', str(cert)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            cls.context = ssl.create_default_context(cafile=str(cert))
-            tls_args = ['--tls-cert', str(cert), '--tls-key', str(key)]
-        cls.process = subprocess.Popen([str(ROOT / '.build/debug/SofaPad'), '--preview-server', '--port', str(cls.port), '--web-root', str(ROOT / 'Web/dist'), '--pair-file', str(cls.pair_file)] + tls_args, stdout=subprocess.DEVNULL)
+        cls.origin = f'http://127.0.0.1:{cls.port}'
+        cls.process = subprocess.Popen([str(ROOT / '.build/debug/SofaPad'), '--preview-server', '--port', str(cls.port),
+                                        '--web-root', str(ROOT / 'Web/dist'), '--info-file', str(cls.info_file)], stdout=subprocess.DEVNULL)
         for _ in range(200):
-            if cls.pair_file.exists(): break
+            if cls.info_file.exists(): break
             if cls.process.poll() is not None: raise RuntimeError('Preview exited before startup')
             time.sleep(0.05)
-        pair_url = json.loads(cls.pair_file.read_text())['url']
-        cls.token = parse_qs(urlparse(pair_url).fragment)['pair'][0]
-        status, headers, _ = cls.request('POST', '/api/pair', {'token': cls.token, 'name': 'Integration browser'})
-        assert status == 200
-        cls.cookie_header = headers['set-cookie']
-        cls.cookie = cls.cookie_header.split(';')[0]
+        cls.url = json.loads(cls.info_file.read_text())['url']
     @classmethod
     def tearDownClass(cls):
         cls.process.terminate(); cls.process.wait(timeout=8); cls.directory.cleanup()
     @classmethod
     def request(cls, method, path, value=None, **extra):
-        connection = http.client.HTTPSConnection('127.0.0.1', cls.port, timeout=5, context=cls.context) if cls.secure else http.client.HTTPConnection('127.0.0.1', cls.port, timeout=5)
+        connection = http.client.HTTPConnection('127.0.0.1', cls.port, timeout=5)
         headers = {'Origin': cls.origin, **extra}
         body = json.dumps(value) if value is not None else None
         if body is not None: headers['Content-Type'] = 'application/json'
         connection.request(method, path, body, headers)
         response = connection.getresponse(); data = response.read()
-        result = response.status, dict(response.getheaders()), data
+        result = response.status, {k.lower(): v for k, v in response.getheaders()}, data
         connection.close()
-        return result[0], {k.lower(): v for k, v in result[1].items()}, result[2]
+        return result
+    @classmethod
+    def raw_request(cls, method, path, body, **extra):
+        connection = http.client.HTTPConnection('127.0.0.1', cls.port, timeout=5)
+        connection.request(method, path, body, {'Origin': cls.origin, 'Content-Type': 'application/json', **extra})
+        response = connection.getresponse(); data = response.read()
+        result = response.status, {k.lower(): v for k, v in response.getheaders()}, data
+        connection.close()
+        return result
     def socket(self, **extra):
-        ws = WS(self.port, self.cookie, context=self.context, **extra); self.addCleanup(ws.close); return ws
-    def test_01_static_and_cookie_security(self):
+        ws = WS(self.port, **extra); self.addCleanup(ws.close); return ws
+    def test_01_static_status_and_unknown_paths(self):
         status, headers, data = self.request('GET', '/')
-        self.assertEqual(status, 200); self.assertIn('frame-ancestors', headers['content-security-policy'])
+        self.assertEqual(status, 200)
+        self.assertIn('ws://127.0.0.1:', headers['content-security-policy'])
+        self.assertNotIn('wss://', headers['content-security-policy'])
         self.assertIn(b'SofaPad', data); self.assertEqual(headers['cache-control'], 'no-store')
-        status, headers, data = self.request('GET', '/api/status', Cookie=self.cookie)
-        self.assertTrue(json.loads(data)['authenticated']); self.assertTrue(json.loads(data)['preview'])
+        status, headers, data = self.request('GET', '/api/status')
+        state = json.loads(data)
+        self.assertEqual(status, 200); self.assertTrue(state['preview']); self.assertEqual(state['v'], 2)
+        self.assertNotIn('authenticated', state)
         self.assertEqual(self.request('GET', '/../../etc/passwd')[0], 404)
         self.assertEqual(self.request('GET', '/remote.js')[0], 404)
-        self.assertNotIn(b'remote-mode', self.request('GET', '/')[2])
-    def test_02_token_replay_host_origin(self):
-        self.assertEqual(self.request('POST', '/api/pair', {'token': self.token, 'name': 'replay'})[0], 403)
+        self.assertEqual(self.request('GET', '/api/pair')[0], 404)
+    def test_01b_every_built_web_asset_is_served(self):
+        # A module missing from a hand-written list used to 404 while the page still looked
+        # fine up to the first import, leaving the phone stuck on "正在连接 Mac…".
+        for asset in sorted((ROOT / 'Web' / 'dist').iterdir()):
+            if asset.suffix not in ('.js', '.css', '.html'): continue
+            status, headers, data = self.request('GET', '/' + asset.name)
+            self.assertEqual(status, 200, f'{asset.name} must be served')
+            self.assertTrue(data, f'{asset.name} must not be empty')
+        self.assertGreaterEqual(len(list((ROOT / 'Web' / 'dist').glob('*.js'))), 4)
+    def test_02_host_and_origin(self):
         self.assertEqual(self.request('GET', '/', Host='evil.example')[0], 403)
         self.assertEqual(self.request('GET', '/', Origin='http://evil.example')[0], 403)
-        self.assertEqual(self.request('POST', '/api/forget', Origin='http://evil.example', Cookie=self.cookie)[0], 403)
-        bad = WS(self.port, '', origin=self.origin, context=self.context); self.addCleanup(bad.close); self.assertNotEqual(bad.status, 101)
+        self.assertEqual(self.request('GET', '/', Origin='https://127.0.0.1:%d' % self.port)[0], 403)
         self.assertNotEqual(self.socket(origin='http://evil.example').status, 101)
         self.assertNotEqual(self.socket(host='evil.example').status, 101)
-    def test_03_session_busy_ping_and_reconnect(self):
+    def test_03_parallel_sessions_ping_and_reconnect(self):
         one = self.socket(); first_id = one.hello()
-        two = self.socket(); self.assertEqual(two.receive()['reason'], 'busy'); two.close()
-        one.send(json.dumps({'type': 'ping', 'v': 2, 'sessionID': first_id, 'seq': 1, 'nonce': 'roundtrip'}))
-        self.assertEqual(one.receive(), {'type': 'pong', 'nonce': 'roundtrip'})
-        one.close(); three = self.socket(); self.assertNotEqual(first_id, three.hello())
+        # A second browser controls the Mac at the same time, with its own session.
+        two = self.socket(); second_id = two.hello()
+        self.assertNotEqual(first_id, second_id)
+        for socket, session, nonce in [(one, first_id, 'first'), (two, second_id, 'second')]:
+            socket.send(json.dumps({'type': 'ping', 'v': 2, 'sessionID': session, 'seq': 1, 'nonce': nonce}))
+            self.assertEqual(socket.receive(), {'type': 'pong', 'nonce': nonce})
+        one.close()
+        two.send(json.dumps({'type': 'ping', 'v': 2, 'sessionID': second_id, 'seq': 2, 'nonce': 'still-here'}))
+        self.assertEqual(two.receive(), {'type': 'pong', 'nonce': 'still-here'})
+        two.close(); three = self.socket(); self.assertNotIn(three.hello(), [first_id, second_id])
     def test_04_library_fragment_reassembly(self):
         ws = self.socket()
         ws.send('{"type":"hello",', final=False); ws.send('"v":2}', opcode=0)
@@ -155,13 +165,12 @@ class ServerTests(unittest.TestCase):
         ws = self.socket(); ws.send('{"type":"hello","v":2}', masked=False)
         self.assertEqual(ws.receive()['reason'], 'protocol')
     def test_07_heartbeat_timeout_releases_owner(self):
-        one = self.socket(); one.hello(); result = one.receive()
-        self.assertEqual(result.get('reason'), 'timeout')
+        one = self.socket(); one.hello(); self.assertEqual(one.receive().get('reason'), 'timeout')
         two = self.socket(); two.hello()
     def test_08_no_hello_timeout(self):
         ws = self.socket(); self.assertEqual(ws.receive().get('reason'), 'timeout')
     def test_09_oversized_http(self):
-        self.assertEqual(self.request('POST', '/api/pair', {'token': 'x' * 17000, 'name': 'x'})[0], 413)
+        self.assertEqual(self.raw_request('POST', '/api/status', json.dumps({'token': 'x' * 17000}))[0], 413)
     def test_10_paste_dedupe_across_reconnect_and_reject_conflict(self):
         one = self.socket(); first = one.hello(); request_id = one.ready['pasteEpoch'] + ':integration'
         text = '  中文 👨‍👩‍👧‍👦 e\u0301\n第二行\n'
@@ -181,31 +190,7 @@ class ServerTests(unittest.TestCase):
         two.send(json.dumps(dict(type='click', v=2, sessionID=second, seq=1, button='left', count=1)))
         two.send(json.dumps(dict(type='ping', v=2, sessionID=second, seq=2, nonce='after-drag')))
         self.assertEqual(two.receive()['type'], 'pong')
-    def test_99_revocation_disconnects_and_invalidates_cookie(self):
-        ws = self.socket(); ws.hello()
-        status, headers, _ = self.request('POST', '/api/forget', Cookie=self.cookie)
-        self.assertEqual(status, 200); self.assertIn('Max-Age=0', headers['set-cookie'])
-        self.assertEqual(ws.receive()['reason'], 'revoked')
-        _, _, body = self.request('GET', '/api/status', Cookie=self.cookie)
-        self.assertFalse(json.loads(body)['authenticated'])
 
 
-class TLSServerTests(ServerTests):
-    secure = True
-    def test_12_secure_cookie_and_scheme_policy(self):
-        self.assertTrue(self.cookie.startswith('__Host-sofapad='))
-        for flag in ['Secure', 'HttpOnly', 'SameSite=Strict', 'Path=/']:
-            self.assertIn(flag, self.cookie_header)
-        self.assertEqual(self.context.verify_mode, ssl.CERT_REQUIRED)
-        self.assertTrue(self.context.check_hostname)
-        self.assertEqual(self.request('GET', '/', Origin=f'http://127.0.0.1:{self.port}')[0], 403)
-        self.assertNotEqual(self.socket(origin=f'http://127.0.0.1:{self.port}').status, 101)
-    def test_13_plaintext_cannot_access_tls_port(self):
-        with socket.create_connection(('127.0.0.1', self.port), timeout=3) as connection:
-            connection.sendall(b'GET / HTTP/1.1\r\nHost: localhost\r\n\r\n')
-            try: response = connection.recv(64)
-            except ConnectionResetError: response = b''
-            self.assertNotIn(b'200 OK', response)
-
-
-if __name__ == '__main__': unittest.main(verbosity=2)
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

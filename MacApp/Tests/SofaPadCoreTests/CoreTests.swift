@@ -2,46 +2,42 @@ import XCTest
 @testable import SofaPadCore
 
 final class CoreTests: XCTestCase {
-    func testPairingOneTimeExpiryAndRevocation() throws {
-        let store = try CredentialStore(file: nil), now = Date()
-        let token = try store.beginPairing(now: now)
-        XCTAssertEqual(token.count, 43)
-        let credential = try store.pair(token: token, name: "iPhone", peer: "phone", now: now)
-        XCTAssertThrowsError(try store.pair(token: token, name: "iPhone", peer: "phone", now: now))
-        let device = try XCTUnwrap(store.authenticate(credential, now: now))
-        XCTAssertNil(store.authenticate(credential, now: now.addingTimeInterval(31 * 86400)))
-        try store.revoke(id: device.id); XCTAssertNil(store.authenticate(credential, now: now))
-        let expired = try store.beginPairing(now: now)
-        XCTAssertThrowsError(try store.pair(token: expired, name: "iPhone", peer: "phone", now: now.addingTimeInterval(301)))
-        _ = try store.beginPairing(); store.closePairing()
-        XCTAssertThrowsError(try store.pair(token: expired, name: "iPhone", peer: "phone"))
-    }
-    func testCredentialsPersistOnlyHashes() throws {
-        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("devices.json")
-        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
-        let store = try CredentialStore(file: file)
-        let token = try store.beginPairing(), credential = try store.pair(token: token, name: "Phone", peer: "1")
-        let content = try String(contentsOf: file, encoding: .utf8)
-        XCTAssertFalse(content.contains(credential)); XCTAssertFalse(content.contains(token))
-        XCTAssertNotNil(try CredentialStore(file: file).authenticate(credential))
-        XCTAssertEqual((try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? NSNumber)?.intValue, 0o600)
-    }
-    func testExactHostOriginAndCookiePolicy() {
+    func testExactHostAndOriginPolicy() {
         let policy = AccessPolicy(hosts: ["192.168.1.4:9876"])
         XCTAssertTrue(policy.accepts(host: "192.168.1.4:9876", origin: "http://192.168.1.4:9876", requiresOrigin: true))
         for origin in [nil, "null", "https://192.168.1.4:9876", "http://evil.example", "http://192.168.1.4:9876.evil.example"] {
             XCTAssertFalse(policy.accepts(host: "192.168.1.4:9876", origin: origin, requiresOrigin: true))
         }
         XCTAssertFalse(policy.accepts(host: "evil.example:9876", origin: nil, requiresOrigin: false))
-        let cookie = "sofapad=" + String(repeating: "a", count: 43)
-        XCTAssertNotNil(AccessPolicy.credential(cookie: cookie)); XCTAssertNil(AccessPolicy.credential(cookie: cookie + "; " + cookie))
+        XCTAssertTrue(policy.accepts(host: "192.168.1.4:9876", origin: nil, requiresOrigin: false))
+        // The Bonjour name is allowed as a second, stable address next to the IP.
+        let dual = AccessPolicy(hosts: ["192.168.1.4:9876", "mac-mini.local:9876"])
+        XCTAssertTrue(dual.accepts(host: "mac-mini.local:9876", origin: "http://mac-mini.local:9876", requiresOrigin: true))
+        XCTAssertTrue(dual.accepts(host: "192.168.1.4:9876", origin: "http://192.168.1.4:9876", requiresOrigin: true))
+        XCTAssertFalse(dual.accepts(host: "other.local:9876", origin: "http://other.local:9876", requiresOrigin: true))
+        XCTAssertEqual(AccessPolicy.clientLabel(userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari"), "iPhone Safari")
+        XCTAssertEqual(AccessPolicy.clientLabel(userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Safari"), "Mac 浏览器")
+        XCTAssertEqual(AccessPolicy.clientLabel(userAgent: nil), "手机")
     }
-    func testPairingRateLimits() throws {
-        let store = try CredentialStore(file: nil), token = try store.beginPairing()
-        for _ in 0..<10 { XCTAssertThrowsError(try store.pair(token: "bad", name: "", peer: "same")) }
-        XCTAssertThrowsError(try store.pair(token: token, name: "", peer: "same")) { error in
-            guard case PairingError.rateLimited = error else { return XCTFail("Expected rate limit") }
-        }
+    func testServiceLaunchPolicy() {
+        // Normal launch with an address ready.
+        XCTAssertTrue(ServiceLaunchPolicy.shouldStart(running: false, changing: false, stoppedByUser: false,
+                                                      hasAddress: true, addressAppeared: true, restartPending: false))
+        // Logging in beats the network: the address shows up later and triggers the start.
+        XCTAssertFalse(ServiceLaunchPolicy.shouldStart(running: false, changing: false, stoppedByUser: false,
+                                                       hasAddress: false, addressAppeared: false, restartPending: false))
+        XCTAssertTrue(ServiceLaunchPolicy.shouldStart(running: false, changing: false, stoppedByUser: false,
+                                                      hasAddress: true, addressAppeared: true, restartPending: false))
+        // A pending restart after an address change starts even without a fresh change.
+        XCTAssertTrue(ServiceLaunchPolicy.shouldStart(running: false, changing: false, stoppedByUser: false,
+                                                      hasAddress: true, addressAppeared: false, restartPending: true))
+        // An explicit stop is respected, and nothing starts twice.
+        XCTAssertFalse(ServiceLaunchPolicy.shouldStart(running: false, changing: false, stoppedByUser: true,
+                                                       hasAddress: true, addressAppeared: true, restartPending: true))
+        XCTAssertFalse(ServiceLaunchPolicy.shouldStart(running: true, changing: false, stoppedByUser: false,
+                                                       hasAddress: true, addressAppeared: true, restartPending: false))
+        XCTAssertFalse(ServiceLaunchPolicy.shouldStart(running: false, changing: true, stoppedByUser: false,
+                                                       hasAddress: true, addressAppeared: true, restartPending: false))
     }
     func testSharedProtocolFixtures() throws {
         struct Fixture: Decodable { let name: String; let valid: Bool; let messages: [String] }
@@ -54,24 +50,35 @@ final class CoreTests: XCTestCase {
             XCTAssertEqual(accepted, fixture.valid, fixture.name)
         }
     }
-    func testSessionOwnershipPermissionAndRevocation() throws {
+    func testEveryConnectionControlsInParallel() throws {
         final class Fake: InputExecutor {
             var permitted = true; var doubleClickInterval = 0.5; var events = 0
             func execute(_ message: InputMessage) { events += 1 }; func reset() {}
         }
-        let store = try CredentialStore(file: nil), fake = Fake(), state = ControlState(store: store, executor: fake, name: "Test")
-        let token = try state.beginPairing(), cookie = try state.pair(token: token, name: "Phone", peer: "1")
-        XCTAssertEqual(state.acquire(token: nil, disconnect: { _ in }).error, "unpaired")
-        var reason: String?
-        let id = try XCTUnwrap(state.acquire(token: cookie, disconnect: { reason = $0 }).id)
-        XCTAssertEqual(state.acquire(token: cookie, disconnect: { _ in }).error, "busy")
-        func move(_ seq: Int) -> Data { Data("{\"type\":\"move\",\"v\":2,\"sessionID\":\"\(id)\",\"seq\":\(seq),\"dx\":1,\"dy\":2}".utf8) }
-        _ = try state.process(move(1), sessionID: id); XCTAssertEqual(fake.events, 1)
-        fake.permitted = false; _ = try state.process(move(2), sessionID: id); XCTAssertEqual(fake.events, 1)
-        XCTAssertThrowsError(try state.process(move(2), sessionID: id))
-        try state.revoke(id: XCTUnwrap(state.snapshot().devices.first).id)
-        XCTAssertEqual(reason, "revoked"); XCTAssertThrowsError(try state.process(move(3), sessionID: id))
-        XCTAssertFalse(state.authenticated(cookie))
+        let fake = Fake(), state = ControlState(executor: fake, name: "Test")
+        var firstReason: String?, secondReason: String?
+        let first = state.acquire(label: "iPhone Safari", disconnect: { firstReason = $0 })
+        let second = state.acquire(label: "iPad Safari", disconnect: { secondReason = $0 })
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(state.snapshot().controllers, ["iPhone Safari", "iPad Safari"])
+        func move(_ session: String, _ seq: Int) -> Data { Data("{\"type\":\"move\",\"v\":2,\"sessionID\":\"\(session)\",\"seq\":\(seq),\"dx\":1,\"dy\":2}".utf8) }
+        // Both sessions are executed, each with its own sequence counter.
+        _ = try state.process(move(first, 1), sessionID: first); XCTAssertEqual(fake.events, 1)
+        _ = try state.process(move(second, 1), sessionID: second); XCTAssertEqual(fake.events, 2)
+        // Without the accessibility grant input is ignored, but sessions survive.
+        fake.permitted = false; _ = try state.process(move(first, 2), sessionID: first); XCTAssertEqual(fake.events, 2)
+        XCTAssertEqual(state.snapshot().permitted, false)
+        fake.permitted = true
+        // One browser leaving does not disturb the other.
+        state.release(id: first)
+        XCTAssertEqual(state.snapshot().controllers, ["iPad Safari"])
+        _ = try state.process(move(second, 2), sessionID: second); XCTAssertEqual(fake.events, 3)
+        XCTAssertThrowsError(try state.process(move(first, 3), sessionID: first))
+        // The Mac can still drop everyone at once.
+        state.disconnect()
+        XCTAssertEqual(secondReason, "host_disconnect"); XCTAssertNil(firstReason)
+        XCTAssertTrue(state.snapshot().controllers.isEmpty)
+        XCTAssertThrowsError(try state.process(move(second, 3), sessionID: second))
     }
     func testProtocolRateAndSizeLimits() throws {
         var validator = ProtocolValidator(sessionID: "test-session")
