@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SofaPad · 把手机浏览器变成 Mac 的触控板</title>
+<meta name="description" content="SofaPad 是一个 macOS 菜单栏小工具：它把你的手机浏览器变成连着电视的 Mac 的整屏触控板和文字输入端。同一 Wi‑Fi 下打开地址即可控制，手机端什么都不用装。">
+<meta property="og:title" content="SofaPad · 把手机浏览器变成 Mac 的触控板">
+<meta property="og:description" content="只装一个 Mac 菜单栏 App，手机浏览器打开地址即可控制。支持整屏触控、边缘滚动、实时文字输入、多台设备同时控制。">
+<meta property="og:image" content="images/phone-trackpad.png">
+<meta name="theme-color" content="#e8eade">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">macOS 菜单栏 App · 无云服务 · 开源</p>
+    <h1>SofaPad</h1>
+    <p class="tagline">你的 iPhone 浏览器，就是 Mac 的触控板。坐在沙发上就能用。</p>
+    <p class="lede">只装一个 Mac 菜单栏 App——网页和服务都内置在 App 里。<strong>手机端什么都不用装</strong>：同一个 Wi‑Fi 下用浏览器打开菜单栏显示的地址，就能控制这台连着电视的 Mac。</p>
+    <p class="actions">
+      <a class="button primary" href="https://github.com/keyzhao0118/sofapad/releases/latest">下载最新安装包</a>
+      <a class="button" href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">安装与使用教程</a>
+    </p>
+    <p class="note">最新版本 <strong>0.9.7</strong> · Apple Silicon（arm64）· macOS 13+ · 本机 ad hoc 签名，未公证</p>
+  </div>
+</header>
+
+<main>
+  <section class="wrap shots" aria-label="界面截图">
+    <figure><img src="images/phone-trackpad.png" alt="手机上的整屏触控板" width="393" height="852"><figcaption>整屏触控板：左上角设置，底部键盘把手</figcaption></figure>
+    <figure><img src="images/phone-settings.png" alt="手感设置面板" width="393" height="852"><figcaption>手感设置保存在 Mac，多台手机共用</figcaption></figure>
+    <figure><img src="images/phone-input.png" alt="实时输入面板" width="393" height="852"><figcaption>选词即键入 Mac，字符从框内飘出</figcaption></figure>
+  </section>
+
+  <section class="wrap">
+    <h2>它能做什么</h2>
+    <div class="grid">
+      <article><h3>整屏触控</h3><p>单指移动／点击／双击，双指右击与滚动，三指拖动；长按约半秒右击，轻点一次后按住稍停再滑动就是按住拖动。</p></article>
+      <article><h3>边缘滚动</h3><p>左右各 28 px 窄条落指即滚动；其外与渐隐提示等宽的 76 px 判定带里，纵向滑动同样滚动，横向滑动仍是移动指针——拇指不用刻意贴边。</p></article>
+      <article><h3>手机输入</h3><p>“穿堂”式实时同步：手机键盘选词后字符立即出现在 Mac 光标处并从手机上消失；删除 ⌫、回车 ↵ 都即时发送一次真实按键，不经过剪贴板。</p></article>
+      <article><h3>多台同时控制</h3><p>任何数量、任何设备（手机／平板／电脑）打开地址即可；同一时刻以先开始的手势为准，菜单可单独或一次性断开全部控制者。</p></article>
+      <article><h3>前台保持亮屏</h3><p>可用时走系统 Wake Lock，局域网 HTTP 下用内置无声视频兼容保活；离开页面即停止，开关与状态都在设置里。</p></article>
+      <article><h3>开箱即用</h3><p>App 启动服务就开着，菜单栏显示固定的 <code>.local</code> 名字与当前 IP 两个地址；支持登录时启动，不联网、不遥测、不自动更新。</p></article>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2>三步开始</h2>
+    <ol class="steps">
+      <li><strong>安装</strong>：双击 <code>SofaPad-0.9.7.pkg</code>，装到「应用程序」，打开它（没有窗口，只在菜单栏出现一个小图标）。</li>
+      <li><strong>授权</strong>：菜单栏图标 →「授予辅助功能权限…」，在 系统设置 → 隐私与安全性 → 辅助功能 里打开 SofaPad。</li>
+      <li><strong>连接</strong>：手机连同一个 Wi‑Fi，用浏览器打开菜单栏里显示的地址（推荐 <code>http://&lt;Mac 名&gt;.local:9876/</code>），看到整屏触控板即可控制。</li>
+    </ol>
+    <p class="hint">想全屏使用：Safari 里点分享 →「添加到主屏幕」。服务随 App 自动开启，不需要点“开启服务”。</p>
+  </section>
+
+  <section class="wrap">
+    <h2>手势速查</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>手指动作</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td>单指移动</td><td>移动 Mac 指针</td></tr>
+          <tr><td>单指轻点／快速双击</td><td>左键单击／双击</td></tr>
+          <tr><td>单指按住约 0.5 秒</td><td>右键单击</td></tr>
+          <tr><td>双指轻点</td><td>右键单击</td></tr>
+          <tr><td>双指上下滑动</td><td>滚动</td></tr>
+          <tr><td>左右边缘 76 px 内单指上下滑</td><td>滚动（窄条 28 px 内落指即滚）</td></tr>
+          <tr><td>三指滑动</td><td>拖动（拖窗口、选文字）</td></tr>
+          <tr><td>轻点一次 → 按住稍停 → 滑动</td><td>按住拖动</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2>安全边界</h2>
+    <p>服务只在选定的私有 IPv4 上提供<strong>明文 HTTP/WS</strong>（默认端口 9876）：局域网内任何能访问该地址的人都能控制这台 Mac，也能读取流量。请只在可信的家庭网络使用，不要映射到公网。</p>
+    <p>没有账号、配对码或证书——打开地址即可控制，这是有意的取舍。仍然保留精确的 Host／Origin 校验、同源要求、连接上限与消息大小／频率限制。</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      <a href="https://github.com/keyzhao0118/sofapad">GitHub 仓库</a> ·
+      <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">安装与使用教程</a> ·
+      <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/product-blueprint.md">产品文档</a> ·
+      <a href="https://github.com/keyzhao0118/sofapad/blob/main/Protocol/README.md">协议 v2</a> ·
+      <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/validation.md">验证记录</a> ·
+      <a href="https://github.com/keyzhao0118/sofapad/releases">全部版本</a>
+    </p>
+    <p class="muted">MIT License · Copyright (c) 2026 Key (keyzhao0118) · 真机上的长按容差、iOS 系统键盘与自动锁屏策略仍需按 <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/validation.md">验证记录</a> 逐项确认</p>
+  </div>
+</footer>
+</body>
+</html>
