@@ -208,7 +208,19 @@ bash scripts/build.sh          # 生成 build/SofaPad.app（release，本机 ad 
 bash scripts/test.sh           # 网页 + Swift + 回环集成测试
 bash scripts/package.sh        # 生成 .pkg / .zip（MAKE_DMG=0 跳过 .dmg）
 bash scripts/make-icon.sh      # 需要时重新生成 MacApp/AppIcon.icns
+bash scripts/publish-release.sh # 推送、发 Release、开 Pages（需要 GitHub 令牌）
 ```
+
+### 发布一个版本
+
+`scripts/publish-release.sh` 一步做完三件事：推送主分支与 `v<版本>` 标签、创建 GitHub Release 并上传 `.pkg`／`.zip`、把 GitHub Pages 的来源设为 `main` 分支的 `/docs`（介绍页就在那里）。
+
+```bash
+bash scripts/publish-release.sh            # 交互式输入令牌（不显示）
+bash scripts/publish-release.sh --dry-run  # 只打印将要执行的操作
+```
+
+令牌要求：classic 勾 `repo`；或 fine-grained 只授权本仓库、权限给 `Contents: Read and write`（推送与 Release）与 `Pages: Read and write`（开启 Pages）。发布说明自动取 `CHANGELOG.md` 中该版本的段落，所以发版前先写好那一节。
 
 - `build.sh` 会先编译网页（`Web/dist`）再打包 App，网页、图标与第三方许可都已内置，**最终使用者不需要 Node**。
 - 可用 `NODE_BINARY`／`PNPM_BINARY` 指定工具，`CONFIGURATION=debug` 切调试构建，`SIGNING_IDENTITY`／`PKG_SIGNING_IDENTITY` 使用自己的签名身份。
