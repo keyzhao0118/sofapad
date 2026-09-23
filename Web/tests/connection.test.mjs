@@ -4,7 +4,7 @@ import { ConnectionClient } from '../dist/connection.js';
 
 function setup(t) {
   t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
-  const sockets = [], updates = [];
+  const sockets = [], updates = [], settingsUpdates = [];
   class Socket {
     static OPEN = 1;
     readyState = 1; bufferedAmount = 0; sent = []; onclose = null; onmessage = null;
@@ -18,9 +18,9 @@ function setup(t) {
   const originalSocket = globalThis.WebSocket, originalLocation = globalThis.location;
   globalThis.WebSocket = Socket; globalThis.location = { protocol: 'http:', host: '127.0.0.1:9876' };
   let cancellations = 0;
-  const client = new ConnectionClient(update => updates.push(update), () => cancellations++);
+  const client = new ConnectionClient(update => updates.push(update), () => cancellations++, settings => settingsUpdates.push(settings));
   t.after(() => { client.disconnect(); globalThis.WebSocket = originalSocket; globalThis.location = originalLocation; });
-  return { client, sockets, updates, cancelled: () => cancellations };
+  return { client, sockets, updates, settingsUpdates, cancelled: () => cancellations };
 }
 test('input is gated by ready and permission, revocation stops it immediately', async t => {
   const { client, sockets, updates } = setup(t);
@@ -128,4 +128,37 @@ test('backspace is not queued behind paste or a congested connection', async t =
   assert.equal(client.canBackspace, true); socket.bufferedAmount = 9000;
   assert.equal(client.backspace(), false); assert.equal(socket.sent.some(m => m.type === 'backspace'), false);
   await client.connect(); sockets[1].ready('session-2'); assert.equal(sockets[1].sent.length, 1);
+});
+
+test('Mac settings synchronize before edits, use field patches, and ignore older broadcasts', async t => {
+  const { client, sockets, settingsUpdates } = setup(t);
+  assert.equal(client.saveSettings({ keepAwake: false }), false);
+  await client.connect(); const socket = sockets[0]; socket.ready('settings-session', ['settings']);
+  assert.equal(client.canSaveSettings, false);
+  const settings = { pointer: 2.4, scroll: 0.2, natural: false, keepAwake: true };
+  socket.receive({ type: 'settings', settings, settingsRevision: 5 });
+  assert.deepEqual(settingsUpdates.at(-1), settings); assert.equal(client.canSaveSettings, true);
+  socket.receive({ type: 'status', permitted: false });
+  assert.equal(client.saveSettings({ keepAwake: false }), true, 'preferences do not require Accessibility');
+  assert.deepEqual(socket.sent.at(-1).settings, { keepAwake: false });
+  socket.receive({ type: 'settings', settings: { ...settings, keepAwake: false }, settingsRevision: 6 });
+  socket.receive({ type: 'settings', settings, settingsRevision: 5 });
+  assert.equal(settingsUpdates.at(-1).keepAwake, false);
+  socket.receive({ type: 'settings', settings: { ...settings, pointer: 500 }, settingsRevision: 7 });
+  assert.equal(settingsUpdates.length, 2);
+  client.disconnect(); assert.equal(client.canSaveSettings, false);
+  assert.equal(client.saveSettings({ natural: true }), false);
+  await client.connect(); sockets[1].ready('new-session', ['settings']);
+  sockets[1].receive({ type: 'settings', settings, settingsRevision: 0 });
+  assert.equal(client.canSaveSettings, true, 'revision resets when Mac restarts');
+  assert.deepEqual(settingsUpdates.at(-1), settings);
+});
+
+test('ready carries authoritative settings, while old hosts never receive unsupported settings', async t => {
+  const { client, sockets, settingsUpdates } = setup(t); await client.connect();
+  const settings = { pointer: 1.5, scroll: 0.3, natural: true, keepAwake: false };
+  sockets[0].receive({ type: 'ready', v: 2, sessionID: 's', capabilities: ['settings'], permitted: true, doubleClickInterval: 0.5, settings, settingsRevision: 0 });
+  assert.deepEqual(settingsUpdates, [settings]); assert.equal(client.canSaveSettings, true);
+  await client.connect(); sockets[1].ready();
+  assert.equal(client.canSaveSettings, false); assert.equal(client.saveSettings(settings), false);
 });

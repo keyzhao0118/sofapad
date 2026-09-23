@@ -17,6 +17,7 @@ public struct InputMessage: Decodable {
     public let requestID: String?
     public let text: String?
     public let delete: Int?
+    public let settings: SettingsPatch?
 }
 
 /// One validator per socket. No queued input survives its lifetime.
@@ -86,6 +87,8 @@ public struct ProtocolValidator {
             guard !scrolling, !dragging else { throw ProtocolFailure.invalid }
         case "ping":
             guard let nonce = message.nonce, nonce.count <= 64 else { throw ProtocolFailure.invalid }
+        case "settings":
+            guard let patch = message.settings, patch.valid else { throw ProtocolFailure.invalid }
         case "disconnect": break
         default: throw ProtocolFailure.invalid
         }

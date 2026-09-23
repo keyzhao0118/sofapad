@@ -38,9 +38,32 @@ import SofaPadCore
 /// in this menu.
 struct SofaPadApplication: App {
     @StateObject private var model = AppModel()
+    private static let menuIcon: NSImage = {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        for name in ["MenuBarIcon", "MenuBarIcon@2x"] {
+            // The 1x and 2x files are separate bitmaps; both are declared as 18 pt so
+            // AppKit picks the right one per display.
+            if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+               let data = try? Data(contentsOf: url),
+               let representation = NSBitmapImageRep(data: data) {
+                representation.size = size
+                image.addRepresentation(representation)
+            }
+        }
+        // The unbundled development executable has no resource directory.
+        if image.representations.isEmpty {
+            return NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: "SofaPad")!
+        }
+        image.isTemplate = true
+        return image
+    }()
     var body: some Scene {
-        MenuBarExtra("SofaPad", systemImage: model.controllers.isEmpty ? "rectangle.and.hand.point.up.left" : "cursorarrow.rays") {
+        MenuBarExtra {
             MenuContent(model: model)
+        } label: {
+            Image(nsImage: Self.menuIcon)
+                .accessibilityLabel(model.controllers.isEmpty ? "SofaPad，未连接" : "SofaPad，已连接 \(model.controllers.count) 台设备")
         }
     }
 }

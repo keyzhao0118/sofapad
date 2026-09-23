@@ -35,7 +35,8 @@ python3 - "$EXPANDED/PackageInfo" <<'PY'
 import pathlib, re, sys
 path = pathlib.Path(sys.argv[1])
 text = path.read_text(encoding='utf-8')
-patched = re.sub(r'\s*<relocate>.*?</relocate>', '', text, flags=re.S)
+# Recent pkgbuild versions emit an empty <relocate/> for non-relocatable bundles.
+patched = re.sub(r'\s*<relocate\s*(?:/>|>.*?</relocate>)', '', text, flags=re.S)
 if patched == text:
     sys.exit('PackageInfo has no <relocate> element; packaging script needs a look')
 path.write_text(patched, encoding='utf-8')

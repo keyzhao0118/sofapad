@@ -165,7 +165,7 @@ final class HTTPHandler: ChannelInboundHandler, RemovableChannelHandler, @unchec
         headers.add(name: "X-Content-Type-Options", value: "nosniff"); headers.add(name: "Referrer-Policy", value: "no-referrer")
         headers.add(name: "X-Frame-Options", value: "DENY")
         let sockets = policy.hosts.sorted().map { "ws://\($0)" }.joined(separator: " ")
-        headers.add(name: "Content-Security-Policy", value: "default-src 'self'; connect-src 'self' \(sockets); img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        headers.add(name: "Content-Security-Policy", value: "default-src 'self'; connect-src 'self' \(sockets); img-src 'self' data:; media-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
         context.write(wrapOutboundOut(.head(HTTPResponseHead(version: .http1_1, status: status, headers: headers))), promise: nil)
         var buffer = context.channel.allocator.buffer(capacity: data.count); buffer.writeBytes(data)
         context.write(wrapOutboundOut(.body(.byteBuffer(buffer))), promise: nil)

@@ -55,7 +55,7 @@ import SofaPadCore
         }
     }
     init() {
-        let state = ControlState(executor: MouseEventExecutor(), name: Host.current().localizedName ?? "Mac")
+        let state = ControlState(executor: MouseEventExecutor(), name: Host.current().localizedName ?? "Mac", preferences: .standard)
         control = state; server = LocalServer(state: state)
         // Keep the remembered address even when the interface is not up yet: at login the
         // network usually arrives a few seconds after the app does.

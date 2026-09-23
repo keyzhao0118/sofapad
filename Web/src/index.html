@@ -16,6 +16,9 @@
       <div id="scroll-left" class="scroll-edge" data-side="left" aria-label="左侧滚动区：上下滑动滚动，抬手停止" aria-disabled="true"><span aria-hidden="true"></span></div>
       <div id="scroll-right" class="scroll-edge" data-side="right" aria-label="右侧滚动区：上下滑动滚动，抬手停止" aria-disabled="true"><span aria-hidden="true"></span></div>
     </section>
+    <button id="open-settings" class="floating settings-button" aria-label="设置：触控板手感"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button>
+    <button id="backspace" class="floating settings-button delete-button" aria-label="在 Mac 上按一次退格键" title="在 Mac 上按一次退格键" hidden disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-7-7zM12 9l6 6m0-6-6 6"/></svg></button>
+    <div id="keyboard-dock">
     <section id="text-mode" hidden aria-label="输入面板">
       <label class="sr-only" for="draft">要在 Mac 上输入的文字</label>
       <div id="input-shell">
@@ -25,12 +28,13 @@
       <p id="sync-hint" class="sync-hint" hidden>输入会实时同步到 Mac 光标处</p>
       <button id="paste" class="primary" disabled>贴入输入框</button>
     </section>
-    <button id="open-settings" class="floating settings-button" aria-label="设置：触控板手感"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg></button>
-    <button id="backspace" class="floating settings-button delete-button" aria-label="在 Mac 上按一次退格键" title="在 Mac 上按一次退格键" hidden disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-7-7zM12 9l6 6m0-6-6 6"/></svg></button>
-    <button id="mode-toggle" class="floating mode-button" aria-label="切换到输入模式" title="切换到输入模式" aria-pressed="false">
-      <span class="mode-icon control-icon" aria-hidden="true"><svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 6v4"/></svg></span>
-      <span class="mode-icon keyboard-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M7 10h.01M12 10h.01M17 10h.01M7 15h10"/></svg></span>
+    <button id="mode-toggle" class="floating mode-button" aria-label="打开键盘" title="打开键盘" aria-expanded="false" aria-controls="text-mode">
+      <svg class="keyboard-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g class="keyboard-frame"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M7 10h.01M12 10h.01M17 10h.01"/></g>
+        <polyline id="keyboard-line" points="7,15 12,15 17,15"/>
+      </svg>
     </button>
+    </div>
     <div id="connection-notice" class="notice" role="status"><span id="detail">正在连接 Mac…</span><button id="retry" hidden>重新连接</button></div>
     <div id="paste-notice" class="notice paste-notice" role="status" hidden></div>
     <div id="preview" hidden>演示模式 · 不操作 Mac</div>
@@ -38,13 +42,35 @@
   <dialog id="settings" aria-labelledby="settings-title">
     <div class="sheet-header"><h2 id="settings-title">设置</h2><button class="close-button" id="close-settings" aria-label="关闭设置">✕</button></div>
     <section id="handfeel-settings" aria-label="操作手感">
+    <label class="toggle-row awake-info" for="keep-awake"><span>屏幕常亮<small id="awake-status" role="status">连接后读取设置</small></span><input id="keep-awake" type="checkbox" checked disabled aria-describedby="awake-status"></label>
     <label class="slider-label" for="pointer-speed"><span>指针与拖动速度</span><output id="pointer-value">1.5×</output></label>
     <input id="pointer-speed" type="range" min="0" max="100" step="1" value="50" aria-describedby="pointer-value">
     <label class="slider-label" for="scroll-speed">滚动速度<output id="scroll-value">0.3×</output></label>
     <input id="scroll-speed" type="range" min="0" max="100" step="1" value="50" aria-describedby="scroll-value">
     <label class="toggle-row" for="natural"><span>自然滚动<small>内容跟随手指的方向移动</small></span><input id="natural" type="checkbox" checked></label>
-    <button class="secondary" id="reset">恢复默认手感</button>
+    <button class="secondary" id="reset">恢复默认设置</button>
+    <p id="settings-status" class="sync-hint settings-status" role="status">连接后自动读取 Mac 设置</p>
     </section>
   </dialog>
 </body>
 </html>
+
+<!-- Heroicons chevron-down: https://github.com/tailwindlabs/heroicons
+MIT License
+Copyright (c) Tailwind Labs, Inc.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->

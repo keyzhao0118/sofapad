@@ -1,4 +1,5 @@
 import type { Action } from './gesture.js';
+import { readSettings, type RemoteSettings } from './remote-settings.js';
 
 export type ConnectionState = 'connecting' | 'connected' | 'permission' | 'paused' | 'offline' | 'error';
 type Update = { state: ConnectionState; detail: string; name?: string; rtt?: number; doubleClickMs?: number; preview?: boolean };
@@ -32,10 +33,24 @@ export class ConnectionClient {
   private supportsBackspace = false;
   private supportsEdit = false;
   private supportsEnter = false;
+  private supportsSettings = false;
+  private settingsRevision = -1;
   private name = '你的 Mac';
   private pasteEpoch?: string;
   private pendingPaste?: { id: string; sent: boolean; resolve: (result: PasteOutcome) => void; timer: ReturnType<typeof setTimeout> };
-  constructor(private update: (update: Update) => void, private cancelGesture: () => void) {}
+  constructor(private update: (update: Update) => void, private cancelGesture: () => void,
+    private settingsChanged: (settings: RemoteSettings) => void = () => {}) {}
+  get canSaveSettings() { return this.ready && this.supportsSettings && this.settingsRevision >= 0; }
+  saveSettings(settings: Partial<RemoteSettings>) {
+    return this.canSaveSettings && this.transmit({ type: 'settings', settings });
+  }
+  private receiveSettings(message: { settings?: unknown; settingsRevision?: unknown }) {
+    const settings = readSettings(message.settings), revision = message.settingsRevision;
+    if (!this.ready || !this.supportsSettings || !settings || typeof revision !== 'number' || !Number.isSafeInteger(revision)
+      || revision < 0 || revision < this.settingsRevision) return;
+    this.settingsRevision = revision;
+    this.settingsChanged(settings);
+  }
   get enabled() { return this.ready && this.permitted; }
   get canBackspace() { return this.enabled && this.supportsBackspace && !this.pendingPaste; }
   get canEdit() { return this.enabled && this.supportsEdit; }
@@ -138,6 +153,8 @@ export class ConnectionClient {
       this.supportsBackspace = Array.isArray(message.capabilities) && message.capabilities.includes('backspace');
       this.supportsEdit = Array.isArray(message.capabilities) && message.capabilities.includes('edit');
       this.supportsEnter = Array.isArray(message.capabilities) && message.capabilities.includes('enter');
+      this.supportsSettings = Array.isArray(message.capabilities) && message.capabilities.includes('settings');
+      this.receiveSettings(message);
       this.pasteEpoch = message.pasteEpoch;
       this.lastPong = performance.now(); clearTimeout(this.deadline);
       this.setPermission(message.permitted === true);
@@ -148,6 +165,7 @@ export class ConnectionClient {
         const nonce = String(performance.now()); this.pings.set(nonce, performance.now());
         this.transmit({ type: 'ping', nonce });
       }, 2000);
+    } else if (message.type === 'settings') { this.receiveSettings(message);
     } else if (message.type === 'pong') {
       const began = this.pings.get(message.nonce);
       if (began !== undefined) {
@@ -186,6 +204,7 @@ export class ConnectionClient {
     this.finishPaste(this.pendingPaste?.sent ? 'uncertain' : 'not_sent'); this.pasteEpoch = undefined;
     this.generation++; this.ready = false; this.permitted = false; this.sessionID = undefined;
     this.supportsBackspace = false; this.supportsEdit = false; this.supportsEnter = false;
+    this.supportsSettings = false; this.settingsRevision = -1;
     this.cancelGesture(); clearTimeout(this.retry); clearTimeout(this.deadline); clearInterval(this.heartbeat); this.pings.clear();
     const socket = this.socket; this.socket = undefined;
     if (socket) { socket.onclose = null; socket.onmessage = null; socket.close(); }

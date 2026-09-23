@@ -1,6 +1,6 @@
 # 验证记录
 
-日期：2026-09-12 · 应用 0.9.3 · [产品基线 v2.5](product-blueprint.md)。本轮为本机开发验证；真机验收逐项列出，不把假执行器或桌面 Chromium 等同于 iPhone／电视结果。
+日期：2026-09-23 · 应用 0.9.7 · [产品基线 v2.5](product-blueprint.md)。本轮为本机开发验证；真机验收逐项列出，不把假执行器或桌面 Chromium 等同于 iPhone／电视结果。
 
 ## 本轮验证结果
 
@@ -63,7 +63,7 @@
 ## 可查看的本地产物
 
 - `build/SofaPad.app`：当前本机签名版本；旧版本保留于 build/previous.*/。
-- `build/SofaPad-0.9.3.pkg`、`build/SofaPad-0.9.3-macos-arm64.zip`：本机开发安装包与压缩包，未公证、未公开发布。
+- `build/SofaPad-0.9.7.pkg`、`build/SofaPad-0.9.7-macos-arm64.zip`：本机开发安装包与压缩包，未公证、未公开发布。
 - `build/validation/phone-connected.png`：整屏触控、左上角设置及右上角图标切换。
 - `build/validation/phone-settings.png`：仅含触控板手感的设置弹窗。
 - `build/validation/phone-input.png`、`phone-input-compact.png`：输入页退格／图标切换及短视口。
@@ -103,3 +103,48 @@
 5. 用常用视频站点完成中文搜索—粘贴—返回触控—点击搜索—滚动选片，再做 20 轮前后台、HDMI、无外网和性能测量。
 
 历史 0.1.0 测试保存在 [归档](archive/v0.1/validation.md)，不作为本版新增能力的通过证据。
+
+
+## 2026-09-20：单手键盘把手
+
+- 取消右上角鼠标／键盘切换，改为底部居中 104 × 48 CSS px 键盘把手；输入时显示向下箭头。输入面板随 visualViewport 停在把手上方。
+- TypeScript 构建通过，67 项前端单元测试通过。
+- 使用 Codex 内置浏览器与预览执行器验证：点击呼出后文本框获得焦点；实时输入后缓冲恢复；箭头收起、点击空白区域收起、失焦恢复、设置开关；393 × 852、393 × 330 与 852 × 393 布局检查通过，浏览器警告与错误日志为空。
+- 已更新 Chromium 回归脚本的入口位置、图标、展开状态与输入面板断言，并补充空白区域收起不发送鼠标操作的断言；本轮没有运行该完整脚本。上方历史 Chromium 验证结果不代表本轮完整回归。
+- 视觉对照见仓库根目录 `design-qa.md`；截图位于 `build/keyboard-design/`。安装教程截图已更新。
+- 实际 iPhone Safari 弹出／收起系统键盘、中文候选、系统听写、安全区域与浏览器工具栏变化仍需真机验收。桌面短视口只验证布局，不模拟真实手机键盘；预览不产生实际 Mac 输入。
+
+### 0.9.4 本地安装包
+
+- 2026-09-20：Release 构建完成，应用版本 0.9.4，构建号 15，Apple Silicon / arm64。
+- 产物：`build/SofaPad-0.9.4.pkg`（2,404,935 字节）及 `build/SofaPad-0.9.4-macos-arm64.zip`。应用使用本机 ad hoc 签名，安装包未做 Developer ID 签名或公证。
+- pkgbuild 新版输出空的 `<relocate/>`，已修复脚本以兼容空标签与成对标签；移除后安装目的地为 `/Applications/SofaPad.app`。
+- 解包后 21 个应用文件逐一 SHA-256 比较与构建产物完全一致；内置 app.js、index.html、style.css 与本轮 Web/dist 一致；解包应用通过 `codesign --verify --deep --strict`。
+- 安装包 SHA-256：`18ba35ea4f5f8254441eb92e4c4b8f9ad58f4c08220df3491398662c85e09742`。
+- 未执行安装，由用户安装后完成 iPhone 真机验收。
+
+## 2026-09-21：0.9.5 前台亮屏与图标过渡
+
+- 新增前台保持亮屏：安全上下文优先 Screen Wake Lock；当前 LAN HTTP 首次触摸启动本地 NoSleep.js 0.12.0 无声 MP4 兼容路径。离开／隐藏时释放，返回尝试恢复；失败不忙循环，下次触摸重试。设置显示请求／播放状态。
+- 图标叠放，opacity 与 transform 在 220–260 ms 内交叉过渡，按钮 bottom 同步过渡；减少动态效果时禁用，焦点仍同步获得。
+- 自动检查通过：74 项网页、20 项 Swift、12 项 HTTP 集成，共 106 项。新增测试覆盖请求去重、晚到请求释放、后台返回竞态、系统拒绝与释放、首次触摸启动、播放拒绝重试、隐藏时晚到播放暂停。HTTP 校验 media-src 允许本地 data 媒体。
+- 内置浏览器验证：正常预览的标准请求成功；独立夹具模拟原生 API 不存在，首次点击显示“兼容保活中”，无 CSP／媒体错误；打开／收起与短视口布局正常。HTTP 夹具放在 build/awake-http-fixture，不进入安装包。截图见 build/awake-animation/。完整 Chromium 脚本本轮仅更新动画等待断言，未运行。
+- 真机门槛：iPhone Safari 前台等待超过系统自动锁屏时长、切后台返回、低电量策略、手机音频和系统听写相互影响仍需用户安装验证。桌面播放成功不能证明 iPhone 不熄屏。
+- 构建：0.9.5 (16) arm64 Release，本机 ad hoc 签名；pkg/zip 已生成，未公证。解包后 24 个文件哈希完全匹配构建产物，内置网页与 Web/dist 一致，签名通过，NoSleep MIT 许可随包，无测试夹具。
+- 安装包 SHA-256：`8d863a03185b38df1b7731d8ded316add876a0f6975820d820b2c7efbe2bc467`。
+
+## 2026-09-23 · 0.9.6（构建 17）
+
+- 自动化：Web 82、Swift 23、真实 HTTP/WebSocket 13，共 118 项通过。修改浏览器原生动画调度绑定后，额外重跑相关 27 项 Web 测试通过。
+- 新增验证：HTTP MP4 禁用 loop 且保留音视频轨、提前跳转；常亮开关释放在途租约、关闭后前后台不重启、再次开启恢复；Mac 设置保存／重建状态读取、非法值拒绝、多设备字段合并与广播、重连快照、旧修订忽略与旧主机禁用；动画反向连续、关闭到达隐藏端点、减少动态效果即时切换。
+- 通过 CUA 浏览器验证：393×852 设置面板、常亮关闭并刷新后仍关闭、再开启；同步 focus；键盘变形的最终形态、快速连续开合、退出面板隐藏；393×330 紧凑输入框／提示／收起按钮均在视口内。发现并修复 requestAnimationFrame/cancelAnimationFrame 以对象方法方式调用产生 Illegal invocation 的问题。桌面视口模拟不能代表 iOS 系统键盘动画。
+- Chromium CLI 全量手势脚本已更新到新 DOM／Mac 设置契约，本轮未运行；本轮浏览器检查使用 CUA。真机自动锁屏与 iPhone 原生键盘、听写和音频影响仍待用户安装验收。
+- `build/SofaPad-0.9.6.pkg` 已解包，与构建的 App 共 26 个文件逐字节一致；内含最新 Web/dist，版本 0.9.6 (17)，签名严格验证通过，无 relocate，安装位置为 /Applications。签名为本地 ad-hoc，不是公证发行包。
+- 安装包 SHA-256：`4e8f2ac02e5a888652c42aa7dea0154ef2a9e08259c806666dddf01ec31e8741`。
+
+## 2026-09-23 · 0.9.7（构建 18）：新图标与收尾复验
+
+- 图标刷新收尾：0.9.6 的安装包里仍是旧图标，且菜单栏图标代码一度无法编译（`NSBitmapImageRep(contentsOf:)` 并不存在）。改为读取 PNG 数据（`NSBitmapImageRep(data:)`）后恢复构建；用 `bash scripts/make-icon.sh` 重新生成 `MacApp/AppIcon.icns`（10 个尺寸）与 18/36 px 菜单栏模板图，两者同一造型：浅色圆角方块 + 深灰触控板 + 镂空光标。
+- 结构验证：App 包内 `Resources/AppIcon.icns` 由 442,424 字节（旧）变为 87,986 字节（新），并新增 `MenuBarIcon.png`／`MenuBarIcon@2x.png`；`Info.plist` 仍指向 `AppIcon`，开发版可执行文件无资源目录时回退系统符号。
+- 复跑完整自动化：Web 82、Swift 23、HTTP/WS 回环 13，共 **118 项全部通过**；桌面 Chromium 全量回归本轮**已实际执行并通过**（此前 0.9.4–0.9.6 只更新断言未运行），覆盖底部键盘把手、面板随 visualViewport 上移、Mac 设置同步与重置、边缘判定带、两个标签页同时控制、轻点后按住拖动等。
+- 仍未验证：iPhone 真机自动锁屏时长、系统键盘弹出／收起动画、中文候选与听写、菜单栏图标在深浅色与窄菜单栏下的实际观感。

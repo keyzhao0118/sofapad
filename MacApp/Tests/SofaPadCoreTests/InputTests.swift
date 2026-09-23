@@ -102,7 +102,7 @@ final class InputTests: XCTestCase {
     }
     func testBackspaceExecutesOnceWithoutTouchingClipboardAndRespectsPermission() throws {
         let backend = FakeBackend(), (state, id) = try makeState(backend)
-        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter"])
+        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter", "settings"])
         let deletion = try data("backspace", session: id)
         _ = try state.process(deletion, sessionID: id)
         XCTAssertEqual(backend.backspaces, 1)
@@ -118,7 +118,7 @@ final class InputTests: XCTestCase {
     }
     func testLiveEditDeletesThenTypesWithoutTouchingClipboard() throws {
         let backend = FakeBackend(), (state, id) = try makeState(backend)
-        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter"])
+        XCTAssertEqual(state.ready(id: id)["capabilities"] as? [String], ["backspace", "edit", "enter", "settings"])
         _ = try state.process(data("edit", session: id, seq: 1, ["delete": 2, "text": "中a"]), sessionID: id)
         XCTAssertEqual(backend.backspaces, 2); XCTAssertEqual(backend.typed, ["中a"])
         _ = try state.process(data("edit", session: id, seq: 2, ["delete": 1, "text": ""]), sessionID: id)

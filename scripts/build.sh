@@ -25,6 +25,7 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources/Web" "$APP_DIR/C
 cp "$BUILD_DIR/SofaPad" "$APP_DIR/Contents/MacOS/SofaPad"
 cp MacApp/Info.plist "$APP_DIR/Contents/Info.plist"
 cp MacApp/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
+cp MacApp/MenuBarIcon*.png "$APP_DIR/Contents/Resources/"
 cp Web/dist/* "$APP_DIR/Contents/Resources/Web/"
 # Only current dependencies may ship: .build can still hold bundles of removed packages
 # (for example swift-nio-ssl) and they would otherwise be copied into the app.
@@ -43,6 +44,7 @@ for resource in "$BUILD_DIR"/*.bundle; do
   fi
 done
 cp LICENSE "$APP_DIR/Contents/Resources/Licenses/SofaPad-MIT.txt"
+cp Web/vendor/NoSleep-LICENSE.txt "$APP_DIR/Contents/Resources/Licenses/NoSleep-MIT.txt"
 for dependency in $DEPENDENCIES; do
   cp ".build/checkouts/$dependency/LICENSE.txt" "$APP_DIR/Contents/Resources/Licenses/$dependency.txt"
   if [ -f ".build/checkouts/$dependency/NOTICE.txt" ]; then

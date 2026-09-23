@@ -1,5 +1,8 @@
 import { GestureEngine, type Action, type EdgeSide } from './gesture.js';
 import { ConnectionClient } from './connection.js';
+import { createKeepAwake } from './keep-awake.js';
+import { KeyboardTransition } from './keyboard-transition.js';
+import type { RemoteSettings } from './remote-settings.js';
 import { TransientInput, TextSubmission, isDictationText, isDictationType, type InputAction, type TextEdit } from './text-input.js';
 import { formatSpeed, positionOf, speedRanges, valueAt } from './settings-range.js';
 
@@ -17,24 +20,36 @@ const sheet = element<HTMLDialogElement>('settings');
 const pointerSpeed = element<HTMLInputElement>('pointer-speed');
 const scrollSpeed = element<HTMLInputElement>('scroll-speed');
 const natural = element<HTMLInputElement>('natural');
-const defaults = { pointer: speedRanges.pointer.middle, scroll: speedRanges.scroll.middle, natural: true };
+const keepAwake = element<HTMLInputElement>('keep-awake');
+const awake = createKeepAwake(state => {
+  const messages = {
+    disabled: '已关闭，按手机系统设置自动锁屏',
+    waiting: '轻触后尝试保持亮屏',
+    native: '系统常亮已启用，离开页面即停止',
+    video: '兼容方式运行中，部分浏览器仍可能熄屏',
+    paused: '已暂停，返回页面后恢复',
+    blocked: '暂未启用，请轻触页面重试',
+  };
+  element('awake-status').textContent = messages[state];
+});
+awake.setEnabled(false); // Wait for the Mac's preference before starting playback.
+const defaults: RemoteSettings = { pointer: speedRanges.pointer.middle, scroll: speedRanges.scroll.middle, natural: true, keepAwake: true };
 // Apply to saved multipliers too, so existing users receive the slower baseline.
 const scrollBaseScale = 0.4;
 let settings = { ...defaults }, inputMode = false, pasteTimer: ReturnType<typeof setTimeout> | undefined;
-try {
-  const saved = JSON.parse(localStorage.getItem('sofapad-settings') || '{}');
-  for (const key of ['pointer', 'scroll'] as const) {
-    const range = speedRanges[key];
-    // Saved handfeel survives upgrades; anything outside the slider is clamped, not dropped.
-    if (typeof saved[key] === 'number' && Number.isFinite(saved[key])) settings[key] = valueAt(positionOf(saved[key], range), range);
-  }
-  if (typeof saved.natural === 'boolean') settings.natural = saved.natural;
-  // Discard obsolete mode preferences while retaining trackpad handfeel.
-  localStorage.removeItem('sofapad-control-mode');
-  localStorage.setItem('sofapad-settings', JSON.stringify(settings));
-} catch { /* Storage is optional; never store the text draft. */ }
+const dock = element('keyboard-dock');
+const keyboardLine = document.getElementById('keyboard-line')!;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const keyboardTransition = new KeyboardTransition(progress => {
+  dock.style.setProperty('--keyboard-progress', String(progress));
+  // The space bar opens into a chevron; the frame and keys gently dissolve.
+  keyboardLine.setAttribute('points', `${7 - 2 * progress},${15 - 6 * progress} 12,${15 + progress} ${17 + 2 * progress},${15 - 6 * progress}`);
+  if (!inputMode && progress === 0) textMode.style.visibility = 'hidden';
+});
+reducedMotion.addEventListener('change', () => keyboardTransition.show(inputMode, reducedMotion.matches));
 function renderSettings() {
   natural.checked = settings.natural;
+  keepAwake.checked = settings.keepAwake;
   for (const [input, key] of [[pointerSpeed, 'pointer'], [scrollSpeed, 'scroll']] as const) {
     const range = speedRanges[key], text = formatSpeed(settings[key]) + '×';
     input.value = String(Math.round(positionOf(settings[key], range)));
@@ -44,21 +59,38 @@ function renderSettings() {
 }
 function renderMode() {
   document.body.dataset.mode = inputMode ? 'input' : 'touch';
-  // The trackpad stays mounted; input mode only drops the panel in from the top.
-  textMode.hidden = !inputMode;
+  // Keep the panel mounted through dismissal. Inert disables all hidden controls
+  // immediately, while its visual exit shares the icon's reversible timeline.
+  textMode.hidden = false;
+  textMode.inert = !inputMode;
+  textMode.setAttribute('aria-hidden', String(!inputMode));
+  if (inputMode) textMode.style.visibility = 'visible';
+  keyboardTransition.show(inputMode, reducedMotion.matches);
   settingsButton.hidden = inputMode;
   if (!inputMode) window.getSelection()?.removeAllRanges();
-  const label = inputMode ? '切换到触控板模式' : '切换到输入模式';
+  const label = inputMode ? '收起键盘' : '打开键盘';
   modeButton.setAttribute('aria-label', label); modeButton.title = label;
-  modeButton.setAttribute('aria-pressed', String(inputMode));
+  modeButton.setAttribute('aria-expanded', String(inputMode));
   renderInputState();
 }
-function saveSettings() { try { localStorage.setItem('sofapad-settings', JSON.stringify(settings)); } catch {} renderSettings(); }
-pointerSpeed.addEventListener('input', () => { settings.pointer = valueAt(Number(pointerSpeed.value), speedRanges.pointer); saveSettings(); });
-scrollSpeed.addEventListener('input', () => { settings.scroll = valueAt(Number(scrollSpeed.value), speedRanges.scroll); saveSettings(); });
-natural.addEventListener('change', () => { settings.natural = natural.checked; saveSettings(); });
+function saveSettings(patch: Partial<RemoteSettings>) {
+  if (!client.saveSettings(patch)) { element('settings-status').textContent = '连接后才能保存设置'; renderSettings(); return; }
+  settings = { ...settings, ...patch };
+  awake.setEnabled(settings.keepAwake);
+  if (patch.keepAwake === true) awake.resume(true); // Still in the trusted toggle/reset event.
+  element('settings-status').textContent = '正在保存到 Mac…';
+  renderSettings();
+}
+for (const [input, key] of [[pointerSpeed, 'pointer'], [scrollSpeed, 'scroll']] as const) {
+  input.addEventListener('input', () => {
+    element(key === 'pointer' ? 'pointer-value' : 'scroll-value').textContent = formatSpeed(valueAt(Number(input.value), speedRanges[key])) + '×';
+  });
+  input.addEventListener('change', () => saveSettings({ [key]: valueAt(Number(input.value), speedRanges[key]) }));
+}
+natural.addEventListener('change', () => saveSettings({ natural: natural.checked }));
+keepAwake.addEventListener('change', () => saveSettings({ keepAwake: keepAwake.checked }));
 element('reset').addEventListener('click', () => {
-  settings = { ...defaults }; saveSettings();
+  saveSettings({ ...defaults });
 });
 renderSettings();
 
@@ -140,7 +172,7 @@ function renderInputState() {
   if (liveTyping !== liveReady) { liveReady = liveTyping; if (liveTyping) transient.reset(); else draft.value = ''; }
   pasteButton.hidden = liveTyping;
   backspaceButton.hidden = !inputMode || liveTyping;
-  element('sync-hint').hidden = !inputMode || !liveTyping;
+  element('sync-hint').hidden = !liveTyping;
   element('ghost-layer').hidden = !liveTyping;
   document.body.dataset.live = String(liveTyping);
   renderDictationState();
@@ -150,6 +182,9 @@ function renderInputState() {
   backspaceButton.disabled = !client.canBackspace || submission.pending;
 }
 const client = new ConnectionClient(update => {
+  for (const control of [pointerSpeed, scrollSpeed, natural, keepAwake, element<HTMLButtonElement>('reset')]) control.disabled = !client.canSaveSettings;
+  if (!client.canSaveSettings) element('settings-status').textContent = ['connecting', 'offline', 'paused'].includes(update.state)
+    ? '连接后自动读取 Mac 设置' : '请更新 Mac App 以同步设置';
   document.body.dataset.state = update.state;
   for (const target of touchTargets) target.setAttribute('aria-disabled', String(update.state !== 'connected'));
   element('connection-notice').hidden = update.state === 'connected';
@@ -161,7 +196,12 @@ const client = new ConnectionClient(update => {
   // A fresh session cannot know the Mac field, so start from an empty scratch buffer.
   if (update.state === 'connected' && !composing) transient.reset();
   renderInputState();
-}, cancelGesture);
+}, cancelGesture, remote => {
+  settings = remote;
+  awake.setEnabled(settings.keepAwake);
+  renderSettings();
+  element('settings-status').textContent = '已保存到 Mac · 所有手机共用';
+});
 const transient = new TransientInput(draft, sendInput, announceInput);
 const submission = new TextSubmission(() => draft.value, text => client.paste(text), message => {
   if (message) {
@@ -215,10 +255,14 @@ backspaceButton.addEventListener('click', () => {
 function setInputMode(next: boolean) {
   if (inputMode === next) return;
   cancelGesture(); submission.cancelQueued(); inputMode = next;
+  if (!inputMode) draft.blur();
   renderMode();
   if (inputMode) { if (client.canEdit) transient.reset(); draft.focus({ preventScroll: true }); } // focus must stay synchronous for iOS
-  else { draft.blur(); modeButton.blur(); }
+  else modeButton.blur();
 }
+// Keep the editor focused until click handles dismissal; pointerdown blur can race
+// the toggle, especially while the virtual viewport is changing.
+modeButton.addEventListener('pointerdown', event => event.preventDefault());
 modeButton.addEventListener('click', () => setInputMode(!inputMode));
 // Dismissing the keyboard (the ✓ key or a tap outside) leaves keyboard mode. The mode
 // button toggles the mode itself, so wait a moment and only act if nothing else did.
@@ -282,6 +326,7 @@ settingsButton.addEventListener('click', () => { cancelGesture(); sheet.showModa
 element('close-settings').addEventListener('click', () => sheet.close());
 element('retry').addEventListener('click', () => { void client.connect(); });
 function visibility(hidden: boolean) {
+  awake.visibility(!hidden);
   if (hidden) { cancelGesture(); submission.cancelQueued(); }
   client.visibility(hidden);
 }
@@ -290,6 +335,9 @@ window.addEventListener('pagehide', () => visibility(true));
 window.addEventListener('pageshow', event => { if (event.persisted) visibility(false); });
 window.addEventListener('online', () => client.networkChanged());
 window.addEventListener('offline', () => client.networkChanged());
+// A normal first touch also activates HTTP video fallback; no extra button needed.
+document.addEventListener('pointerup', event => { if (event.isTrusted) awake.resume(true); }, { capture: true, passive: true });
+document.addEventListener('keydown', event => { if (event.isTrusted) awake.resume(true); }, { capture: true, passive: true });
 window.addEventListener('orientationchange', cancelGesture);
 screen.orientation?.addEventListener('change', cancelGesture);
 function viewportChanged() {
@@ -303,3 +351,4 @@ window.addEventListener('resize', viewportChanged); viewportChanged(); renderInp
 // Any device on the local network can open this address and take control.
 if (location.hash) history.replaceState(null, '', location.pathname);
 void client.connect();
+awake.visibility(!document.hidden);

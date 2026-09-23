@@ -1,4 +1,5 @@
-// Draws the SofaPad app icon into an .iconset folder. Run via scripts/make-icon.sh.
+// Draws the flat SofaPad app icon and its matching menu-bar template.
+// Run via scripts/make-icon.sh; no external assets or drawing dependencies.
 import AppKit
 
 let output = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "AppIcon.iconset"
@@ -10,56 +11,66 @@ let variants: [(String, Int)] = [
     ("icon_512x512", 512), ("icon_512x512@2x", 1024),
 ]
 
-func draw(in context: CGContext, size: CGFloat) {
-    let inset = size * 0.055
-    let body = CGRect(x: inset, y: inset, width: size - inset * 2, height: size - inset * 2)
-    let radius = body.width * 0.2237
+func gray(_ value: CGFloat) -> CGColor { CGColor(gray: value, alpha: 1) }
+
+func drawMark(in context: CGContext, rect: CGRect, template: Bool) {
+    context.setFillColor(template ? gray(0) : gray(0.45))
+    let radius = rect.height * 0.16
+    context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+    context.fillPath()
+    // One solid surface with a pointer cutout, optically centred inside it.
+    let arrow: [CGPoint] = [
+        CGPoint(x: 0.337, y: 0.83), CGPoint(x: 0.337, y: 0.17),
+        CGPoint(x: 0.475, y: 0.355), CGPoint(x: 0.544, y: 0.17),
+        CGPoint(x: 0.613, y: 0.21), CGPoint(x: 0.544, y: 0.395),
+        CGPoint(x: 0.691, y: 0.395),
+    ]
     context.saveGState()
-    context.addPath(CGPath(roundedRect: body, cornerWidth: radius, cornerHeight: radius, transform: nil))
-    context.clip()
-    let space = CGColorSpaceCreateDeviceRGB()
-    let colors = [CGColor(srgbRed: 0.35, green: 0.48, blue: 0.32, alpha: 1),
-                  CGColor(srgbRed: 0.14, green: 0.22, blue: 0.14, alpha: 1)] as CFArray
-    if let gradient = CGGradient(colorsSpace: space, colors: colors, locations: [0, 1]) {
-        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size), end: CGPoint(x: 0, y: 0), options: [])
-    }
-    // Trackpad
-    let pad = CGRect(x: size * 0.21, y: size * 0.13, width: size * 0.58, height: size * 0.40)
-    context.addPath(CGPath(roundedRect: pad, cornerWidth: size * 0.055, cornerHeight: size * 0.055, transform: nil))
-    context.setStrokeColor(CGColor(srgbRed: 0.94, green: 0.94, blue: 0.88, alpha: 0.55))
-    context.setLineWidth(size * 0.028)
-    context.strokePath()
-    // Pointer, the classic macOS arrow, sitting on the trackpad
-    let arrow: [CGPoint] = [CGPoint(x: 0.00, y: 1.00), CGPoint(x: 0.00, y: 0.00), CGPoint(x: 0.28, y: 0.28),
-                            CGPoint(x: 0.42, y: 0.00), CGPoint(x: 0.56, y: 0.06), CGPoint(x: 0.42, y: 0.34),
-                            CGPoint(x: 0.72, y: 0.34)]
-    let height = size * 0.40, scale = height
+    if template { context.setBlendMode(.clear) }
+    context.setFillColor(gray(0.98))
     context.beginPath()
     for (index, point) in arrow.enumerated() {
-        let moved = CGPoint(x: size * 0.33 + point.x * scale, y: size * 0.28 + point.y * scale)
-        if index == 0 { context.move(to: moved) } else { context.addLine(to: moved) }
+        let position = CGPoint(x: rect.minX + point.x * rect.width, y: rect.minY + point.y * rect.height)
+        if index == 0 { context.move(to: position) } else { context.addLine(to: position) }
     }
-    context.closePath()
-    context.setFillColor(CGColor(srgbRed: 0.96, green: 0.95, blue: 0.89, alpha: 1))
-    context.fillPath()
+    context.closePath(); context.fillPath()
     context.restoreGState()
 }
 
-func render(_ pixels: Int) -> Data? {
+func draw(in context: CGContext, size: CGFloat, template: Bool) {
+    context.setAllowsAntialiasing(true)
+    if template {
+        drawMark(in: context, rect: CGRect(x: size / 18, y: size * 3 / 18, width: size * 16 / 18, height: size * 12 / 18), template: true)
+        return
+    }
+    let inset = size * 0.055
+    let body = CGRect(x: inset, y: inset, width: size - inset * 2, height: size - inset * 2)
+    let radius = body.width * 0.2237
+    context.setFillColor(gray(0.94))
+    context.addPath(CGPath(roundedRect: body, cornerWidth: radius, cornerHeight: radius, transform: nil))
+    context.fillPath()
+    drawMark(in: context, rect: CGRect(x: size * 0.205, y: size * 0.28, width: size * 0.59, height: size * 0.44), template: false)
+}
+
+func render(_ pixels: Int, template: Bool = false) throws -> Data {
     guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
                                      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
                                      colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
-          let graphics = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
+          let graphics = NSGraphicsContext(bitmapImageRep: rep) else { throw CocoaError(.fileWriteUnknown) }
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = graphics
-    draw(in: graphics.cgContext, size: CGFloat(pixels))
+    graphics.cgContext.clear(CGRect(x: 0, y: 0, width: pixels, height: pixels))
+    draw(in: graphics.cgContext, size: CGFloat(pixels), template: template)
     NSGraphicsContext.restoreGraphicsState()
-    return rep.representation(using: .png, properties: [:])
+    guard let data = rep.representation(using: .png, properties: [:]) else { throw CocoaError(.fileWriteUnknown) }
+    return data
 }
 
 try FileManager.default.createDirectory(atPath: output, withIntermediateDirectories: true)
 for (name, pixels) in variants {
-    guard let data = render(pixels) else { continue }
-    try data.write(to: URL(fileURLWithPath: output + "/" + name + ".png"))
+    try render(pixels).write(to: URL(fileURLWithPath: output + "/" + name + ".png"))
 }
-print("Wrote \(variants.count) PNGs to \(output)")
+let menuOutput = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "MacApp"
+try render(18, template: true).write(to: URL(fileURLWithPath: menuOutput + "/MenuBarIcon.png"))
+try render(36, template: true).write(to: URL(fileURLWithPath: menuOutput + "/MenuBarIcon@2x.png"))
+print("Wrote \(variants.count) app icon sizes and two menu-bar template sizes")

@@ -6,10 +6,10 @@
 
 | 能力 | 本轮结论与实现 |
 | --- | --- |
-| 最大化触控面积 | 触控面覆盖 visualViewport，无标题／工具栏；用户最新要求的左上角手感按钮与右上角模式按钮悬浮 |
+| 最大化触控面积 | 触控面覆盖 visualViewport，无标题／工具栏；用户最新要求的左上角手感按钮与底部居中键盘把手悬浮 |
 | 长按右击／双击按住拖动 | 触控板静止 500 ms 右击；第二次按住优先作为拖动候选，结束使用已有释放机制 |
 | 操作模式 | 仅触控板与输入；移除遥控界面、引擎和设置，清理旧模式配置并保留触控板手感 |
-| 滚动减速与图标切换 | 双指与双侧边缘滚动统一乘 0.4；右上角鼠标／键盘图标组成胶囊切换，去掉箭头和多余线条，高亮当前状态 |
+| 滚动减速与图标切换 | 双指与双侧边缘滚动统一乘 0.4；底部 104 × 48 键盘把手点击展开，输入时显示收起箭头，随 visualViewport 上移 |
 | 手感默认值与滑块量程 | 按实测把默认值定为指针 1.5×、滚动 0.3×；滑块用 0–100 行程、中点为默认值、两半各按对数刻度，范围扩到 0.2–5.0／0.05–5.0，并夹紧历史存档而不是丢弃 |
 | 轻点后拖动的误判 | “轻点后按住拖动”要求第二次按下先静置 150 ms 再滑动；连续滑动鼠标时偶发的轻微触碰先算作单击，但随后的滑动仍按指针移动处理，不再变成点按后拖动 |
 | Mac 单次退格 | 输入页左上角图标发送固定 backspace；原生构造无修饰键、无重复的一次按下／抬起，保留手机草稿与焦点；v2 能力声明避免向旧主机发送新类型 |
@@ -40,7 +40,7 @@
 
 | 模块 | 变化 |
 | --- | --- |
-| `Web/src/app.ts`、`index.html`、`style.css` | 触控板与输入、双侧滚动区、鼠标／键盘切换、浮动手感设置、旧配置迁移、软键盘视口、实时同步接线与旧主机回退 |
+| `Web/src/app.ts`、`index.html`、`style.css` | 触控板与输入、双侧滚动区、键盘展开／收起、浮动手感设置、旧配置迁移、软键盘视口、实时同步接线与旧主机回退 |
 | `Web/src/gesture.ts` | 三指与单指拖动、500 ms 长按右击、双侧滚动与混区取消，阻止余下触点 |
 | `Web/src/text-input.ts` | 实时对照（字素退格、尾部重写）、IME 延后提交、整段粘贴兼容与结果文案 |
 | `Web/src/connection.ts` | v2、paste 回执、请求编号、发送大小限制、backspace／edit 能力与权限检查、edit 分片、无自动重发 |
@@ -56,3 +56,9 @@ SwiftPM + TypeScript，无第三方前端运行时。SwiftNIO 2.102.0 和 swift-
 仅选定 en* 私有 IPv4，端口 9876；不用 0.0.0.0、私有锁屏 API、root 或录屏。连续像素滚动不合成惯性／Quartz 滚动阶段。所有鼠标、粘贴和退格副作用在 ControlState 锁内串行；去重只存文本摘要与结果。固定退格为用户明确新增能力，不开放任意键码或命令入口。
 
 参考公开接口：[CGEvent](https://developer.apple.com/documentation/coregraphics/cgevent)、[NSPasteboard](https://developer.apple.com/documentation/appkit/nspasteboard)、[SwiftNIO SSL](https://github.com/apple/swift-nio-ssl)。本项目的真实通过项以 [验证记录](validation.md) 为准。
+
+## 2026-09-23 补充
+
+- 常亮作为设置中的显式开关，默认开启；四项网页设置统一保存在 Mac，连接即同步，多手机共用，停服／重启保留。手机旧 localStorage 不再作为设置来源。
+- 0.9.5 MP4 的 loop 标志导致 WebKit 允许显示器休眠；0.9.6 移除 loop，并沿用提前手动跳转。依据：[WebKit shouldDisableSleep](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/html/HTMLMediaElement.cpp)、[NoSleep MP4 分支](https://github.com/richtr/NoSleep.js/blob/master/src/index.js)。播放成功不作为真机常亮通过的证据。
+- 键盘图标与面板采用同一可反向时间线；保持同步 focus，OS 键盘动画不由网页接管。

@@ -422,6 +422,76 @@
         "sessionID",
         "seq"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 2
+        },
+        "sessionID": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "settings"
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "pointer": {
+              "type": "number",
+              "minimum": 0.2,
+              "maximum": 5
+            },
+            "scroll": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 5
+            },
+            "natural": {
+              "type": "boolean"
+            },
+            "keepAwake": {
+              "type": "boolean"
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "pointer"
+              ]
+            },
+            {
+              "required": [
+                "scroll"
+              ]
+            },
+            {
+              "required": [
+                "natural"
+              ]
+            },
+            {
+              "required": [
+                "keepAwake"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "v",
+        "type",
+        "sessionID",
+        "seq",
+        "settings"
+      ]
     }
   ]
 }

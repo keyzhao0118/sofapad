@@ -13,7 +13,11 @@ public struct ControlSnapshot {
 public final class ControlState: @unchecked Sendable {
     private let lock = NSRecursiveLock()
     private let executor: InputExecutor
-    private var sessions: [(id: String, label: String, validator: ProtocolValidator, disconnect: (String) -> Void)] = []
+    private var sessions: [(id: String, label: String, validator: ProtocolValidator, disconnect: (String) -> Void, settingsChanged: ([String: Any]) -> Void)] = []
+    private let preferences: UserDefaults?
+    private var settings = ControlSettings()
+    private var settingsRevision = 0
+    private static let settingsKey = "SofaPad.ControlSettings.v1"
     private var gestureOwner: String?
     private var connections = 0
     private var suspended = false
@@ -21,8 +25,11 @@ public final class ControlState: @unchecked Sendable {
     private var pasteReceipts: [String: (hash: SHA256.Digest, status: String)] = [:]
     public let name: String
     public let preview: Bool
-    public init(executor: InputExecutor, name: String, preview: Bool = false) {
+    public init(executor: InputExecutor, name: String, preview: Bool = false, preferences: UserDefaults? = nil) {
         self.executor = executor; self.name = name; self.preview = preview
+        self.preferences = preferences
+        if let data = preferences?.data(forKey: Self.settingsKey),
+           let saved = try? JSONDecoder().decode(ControlSettings.self, from: data), saved.valid { settings = saved }
     }
     private func locked<T>(_ body: () throws -> T) rethrows -> T {
         lock.lock(); defer { lock.unlock() }; return try body()
@@ -35,9 +42,9 @@ public final class ControlState: @unchecked Sendable {
         guard connections < 48 else { return false }; connections += 1; return true
     } }
     public func removeConnection() { locked { connections = max(0, connections - 1) } }
-    public func acquire(label: String, disconnect: @escaping (String) -> Void) -> String { locked {
+    public func acquire(label: String, settingsChanged: @escaping ([String: Any]) -> Void = { _ in }, disconnect: @escaping (String) -> Void) -> String { locked {
         let id = UUID().uuidString
-        sessions.append((id, label, ProtocolValidator(sessionID: id), disconnect))
+        sessions.append((id, label, ProtocolValidator(sessionID: id), disconnect, settingsChanged))
         return id
     } }
     public func release(id: String) { locked {
@@ -61,11 +68,19 @@ public final class ControlState: @unchecked Sendable {
     public func ready(id: String) -> [String: Any] { locked {
         ["type": "ready", "v": WireProtocol.version, "sessionID": id, "name": name, "pasteEpoch": pasteEpoch,
          "permitted": !suspended && executor.permitted, "doubleClickInterval": executor.doubleClickInterval,
-         "preview": preview, "capabilities": ["backspace", "edit", "enter"]]
+         "preview": preview, "capabilities": ["backspace", "edit", "enter", "settings"],
+         "settings": settings.dictionary, "settingsRevision": settingsRevision]
     } }
     public func process(_ data: Data, sessionID: String) throws -> InputMessage { try locked {
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { throw ProtocolFailure.stale }
         let message = try sessions[index].validator.validate(data, now: ProcessInfo.processInfo.systemUptime)
+        if message.type == "settings", let patch = message.settings {
+            settings.apply(patch)
+            if let data = try? JSONEncoder().encode(settings) { preferences?.set(data, forKey: Self.settingsKey) }
+            settingsRevision += 1
+            let update: [String: Any] = ["type": "settings", "settings": settings.dictionary, "settingsRevision": settingsRevision]
+            for session in sessions { session.settingsChanged(update) }
+        }
         if ["scroll", "drag"].contains(message.type) {
             let ending = ["end", "cancel"].contains(message.phase ?? "")
             if ending { if gestureOwner == sessionID { gestureOwner = nil } }

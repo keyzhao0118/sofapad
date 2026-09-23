@@ -17,7 +17,12 @@ final class ControlSocket: ChannelInboundHandler, @unchecked Sendable {
     init(state: ControlState, label: String) { self.state = state; self.label = label }
     func handlerAdded(context: ChannelHandlerContext) {
         let channel = context.channel
-        let id = state.acquire(label: label) { reason in
+        let id = state.acquire(label: label, settingsChanged: { [weak self] update in
+            channel.eventLoop.execute { [weak self] in
+                guard let self, self.ready, !self.closed else { return }
+                self.send(channel, update)
+            }
+        }) { reason in
             channel.eventLoop.execute { [weak self] in
                 self?.end(channel, reason: reason)
             }

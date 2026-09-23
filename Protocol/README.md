@@ -106,3 +106,11 @@ host_paused／host_stopped／timeout／congested／网络失败自动退避重�
 SwiftNIO 负责 RFC6455 掩码与分片聚合（≤64 片段，≤16 KiB），无额外 TCP 长度头。应用 ≤240 消息／秒，原始帧 ≤480／秒。拒绝未知类型、旧会话、重复序号、非法数字、错乱阶段、过大消息；错误关闭且清理会话。客户端按帧累加更新；点击和阶段结束前 flush，拥塞取消而不堆积旧输入。
 
 [共享样例](fixtures/messages.json) 含 52 组接受／拒绝序列，由 Swift 验证器和 Python 回环集成测试共同执行；覆盖退格、回车、实时 edit、重复序号、活动手势互斥和拒绝任意按键类型。test-session 与示例 epoch 是占位符。样例逐场景使用独立请求编号，专门的去重测试才复用 ID。
+
+## Mac 持久化设置（0.9.6）
+
+`ready.capabilities` 新增 `settings`，同时返回完整 `settings` 和非负整数 `settingsRevision`。默认设置为 `{ "pointer": 1.5, "scroll": 0.3, "natural": true, "keepAwake": true }`。
+
+客户端发送 `{ "type": "settings", "v": 2, "sessionID": "…", "seq": 1, "settings": { "keepAwake": false } }`。patch 至少包含一个已知字段；pointer 限 0.2–5，scroll 限 0.05–5，开关只接受布尔值。复用会话、递增序号与消息限速校验；偏好设置不需要辅助功能权限，也不调用输入执行器。
+
+Mac 在共享状态锁内合并字段，将完整快照写入 `UserDefaults.standard` 的 `SofaPad.ControlSettings.v1`，向全部已完成握手的连接广播 `{ "type": "settings", "settings": {…}, "settingsRevision": 1 }`。不同字段不会互相覆盖，同字段以后接受的修改为准。客户端忽略旧修订，连接生命周期重置修订号；不维护离线写队列，重连由 Mac 快照覆盖。预览服务只在内存保存，测试持久化使用独立 UserDefaults 域，不改用户实际设置。
