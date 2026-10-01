@@ -1,11 +1,11 @@
 // A local illustration: no connection to the Mac, and no native input events.
 export const scenes = [
-  { id: 'play', title: '移动与点击', action: '滑动，再轻点', result: '指针移动，视频开始播放', steps: ['单指滑动', '轻点播放', '大屏开始播放'] },
-  { id: 'scroll', title: '单手滚动', action: '沿手机边缘上滑', result: '大屏列表同步向上滚动', steps: ['拇指落在边缘', '沿边缘上滑', '继续浏览列表'] },
-  { id: 'drag', title: '拖动进度条', action: '轻点 → 再按住稍停 → 滑动', result: '按住左键，拖动播放进度', steps: ['轻点一次', '再次按住稍停', '滑动拖动，抬手结束'] },
-  { id: 'type', title: '中文输入', action: '点键盘，用手机选词', result: '文字出现在 Mac 当前输入框', steps: ['先点中 Mac 输入框', '手机键盘选词', '提交到 Mac，收起键盘'] },
-  { id: 'double', title: '双击打开', action: '快速轻点两次', result: 'Mac 打开选中的照片', steps: ['移动到照片', '快速轻点两次', '照片打开'] },
-  { id: 'right', title: '长按右击', action: '静止按住约半秒', result: 'Mac 弹出右键菜单', steps: ['移动到目标', '静止按住约 0.5 秒', '右键菜单出现'] }
+  { id: 'play', boundaries: [.43, .5], samples: [.28, .46, .9], title: '移动与点击', action: '滑动，再轻点', result: '指针移动，视频开始播放', steps: ['单指滑动', '轻点播放', '大屏开始播放'] },
+  { id: 'scroll', boundaries: [.22, .78], samples: [.16, .57, .9], title: '单手滚动', action: '沿手机边缘上滑', result: '大屏列表同步向上滚动', steps: ['拇指落在边缘', '沿边缘上滑', '继续浏览列表'] },
+  { id: 'drag', boundaries: [.34, .369], samples: [.18, .355, .9], title: '拖动进度条', action: '轻点 → 再按住稍停 → 滑动', result: '按住左键，拖动播放进度', steps: ['轻点一次', '再次按住稍停', '滑动拖动，抬手结束'] },
+  { id: 'type', boundaries: [.22, .65], samples: [.18, .57, .95], title: '中文输入', action: '点键盘，用手机选词', result: '文字出现在 Mac 当前输入框', steps: ['先点中 Mac 输入框', '手机键盘选词', '提交到 Mac，收起键盘'] },
+  { id: 'double', boundaries: [.43, .468], samples: [.28, .46, .9], title: '双击打开', action: '快速轻点两次', result: 'Mac 打开选中的照片', steps: ['移动到照片', '快速轻点两次', '照片打开'] },
+  { id: 'right', boundaries: [.4, .461], samples: [.28, .43, .9], title: '长按右击', action: '静止按住约半秒', result: 'Mac 弹出右键菜单', steps: ['移动到目标', '静止按住约 0.5 秒', '右键菜单出现'] }
 ];
 const clamp = value => Math.max(0, Math.min(1, value));
 const ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
@@ -31,6 +31,8 @@ export function frameAt(id, time) {
     f.text = t >= .65 ? '周末电影' : t >= .46 ? '周末' : '';
     f.step = t < .22 ? 0 : t < .65 ? 1 : 2;
   }
+  const scene = scenes.find(scene => scene.id === id);
+  if (scene) f.step = t < scene.boundaries[0] ? 0 : t < scene.boundaries[1] ? 1 : 2;
   return f;
 }
 
@@ -96,7 +98,7 @@ function mountDemo() {
     if (!root.contains(button)) root.scrollIntoView({ behavior: reduced.matches ? 'instant' : 'smooth', block: 'start' });
   }));
   steps.forEach(button => button.addEventListener('click', () => {
-    paused = true; time = [.28, .57, .9][Number(button.dataset.step)]; syncControls(); paint(); resume();
+    paused = true; time = scenes[index].samples[Number(button.dataset.step)]; syncControls(); paint(); resume();
   }));
   get('demo-pause').addEventListener('click', () => { paused = !paused; syncControls(); resume(); });
   get('demo-replay').addEventListener('click', () => { time = reduced.matches ? .9 : 0; paused = reduced.matches; syncControls(); paint(); resume(); });
