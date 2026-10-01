@@ -2,6 +2,8 @@ import { GestureEngine, type Action, type EdgeSide } from './gesture.js';
 import { ConnectionClient } from './connection.js';
 import { createKeepAwake } from './keep-awake.js';
 import { KeyboardTransition } from './keyboard-transition.js';
+import { KeyboardPull } from './keyboard-pull.js';
+import { KeyboardViewport } from './keyboard-viewport.js';
 import type { RemoteSettings } from './remote-settings.js';
 import { TransientInput, TextSubmission, isDictationText, isDictationType, type InputAction, type TextEdit } from './text-input.js';
 import { formatSpeed, positionOf, speedRanges, valueAt } from './settings-range.js';
@@ -14,6 +16,7 @@ const touchTargets = [surface, ...scrollEdges];
 const draft = element<HTMLTextAreaElement>('draft');
 const pasteButton = element<HTMLButtonElement>('paste');
 const modeButton = element<HTMLButtonElement>('mode-toggle');
+const dismissButton = element<HTMLButtonElement>('dismiss-keyboard');
 const settingsButton = element<HTMLButtonElement>('open-settings');
 const backspaceButton = element<HTMLButtonElement>('backspace');
 const sheet = element<HTMLDialogElement>('settings');
@@ -38,13 +41,13 @@ const defaults: RemoteSettings = { pointer: speedRanges.pointer.middle, scroll: 
 const scrollBaseScale = 0.4;
 let settings = { ...defaults }, inputMode = false, pasteTimer: ReturnType<typeof setTimeout> | undefined;
 const dock = element('keyboard-dock');
-const keyboardLine = document.getElementById('keyboard-line')!;
+const keyboardViewport = new KeyboardViewport();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const keyboardTransition = new KeyboardTransition(progress => {
   dock.style.setProperty('--keyboard-progress', String(progress));
-  // The space bar opens into a chevron; the frame and keys gently dissolve.
-  keyboardLine.setAttribute('points', `${7 - 2 * progress},${15 - 6 * progress} 12,${15 + progress} ${17 + 2 * progress},${15 - 6 * progress}`);
-  if (!inputMode && progress === 0) textMode.style.visibility = 'hidden';
+  if (!inputMode && progress === 0) {
+    textMode.style.visibility = 'hidden'; dismissButton.style.visibility = 'hidden';
+  }
 });
 reducedMotion.addEventListener('change', () => keyboardTransition.show(inputMode, reducedMotion.matches));
 function renderSettings() {
@@ -59,18 +62,20 @@ function renderSettings() {
 }
 function renderMode() {
   document.body.dataset.mode = inputMode ? 'input' : 'touch';
-  // Keep the panel mounted through dismissal. Inert disables all hidden controls
-  // immediately, while its visual exit shares the icon's reversible timeline.
+  // Keep the editor mounted through dismissal, but remove inactive controls from
+  // both touch and keyboard navigation immediately.
   textMode.hidden = false;
   textMode.inert = !inputMode;
   textMode.setAttribute('aria-hidden', String(!inputMode));
-  if (inputMode) textMode.style.visibility = 'visible';
+  if (inputMode) { textMode.style.visibility = 'visible'; dismissButton.style.visibility = 'visible'; }
   keyboardTransition.show(inputMode, reducedMotion.matches);
   settingsButton.hidden = inputMode;
   if (!inputMode) window.getSelection()?.removeAllRanges();
-  const label = inputMode ? '收起键盘' : '打开键盘';
-  modeButton.setAttribute('aria-label', label); modeButton.title = label;
+  modeButton.inert = inputMode;
+  modeButton.setAttribute('aria-hidden', String(inputMode));
   modeButton.setAttribute('aria-expanded', String(inputMode));
+  dismissButton.inert = !inputMode;
+  dismissButton.setAttribute('aria-hidden', String(!inputMode));
   renderInputState();
 }
 function saveSettings(patch: Partial<RemoteSettings>) {
@@ -224,6 +229,9 @@ draft.addEventListener('input', event => {
 });
 // The delete key is decided before the field changes, so correcting pinyin stays local.
 draft.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !composing && !event.isComposing) {
+    event.preventDefault(); setInputMode(false); modeButton.focus({ preventScroll: true }); return;
+  }
   if (!client.canEdit) return;
   // The return key stays with the IME while candidates are open.
   if (event.key === 'Enter') {
@@ -254,22 +262,65 @@ backspaceButton.addEventListener('click', () => {
 });
 function setInputMode(next: boolean) {
   if (inputMode === next) return;
+  cancelPull();
   cancelGesture(); submission.cancelQueued(); inputMode = next;
-  if (!inputMode) draft.blur();
+  if (inputMode) keyboardViewport.open(viewportSize());
+  else { keyboardViewport.close(); draft.blur(); }
+  dock.dataset.keyboardVisible = String(keyboardViewport.visible);
   renderMode();
   if (inputMode) { if (client.canEdit) transient.reset(); draft.focus({ preventScroll: true }); } // focus must stay synchronous for iOS
-  else modeButton.blur();
+  else { modeButton.blur(); dismissButton.blur(); }
 }
 // Keep the editor focused until click handles dismissal; pointerdown blur can race
 // the toggle, especially while the virtual viewport is changing.
 modeButton.addEventListener('pointerdown', event => event.preventDefault());
-modeButton.addEventListener('click', () => setInputMode(!inputMode));
+modeButton.addEventListener('click', () => setInputMode(true));
+const pull = new KeyboardPull();
+let pullPointer: number | undefined, suppressDismissClick = false;
+function cancelPull() {
+  pull.cancel(); pullPointer = undefined;
+}
+dismissButton.addEventListener('pointerdown', event => {
+  if (!inputMode || !event.isPrimary || event.button !== 0) return;
+  event.preventDefault();
+  suppressDismissClick = false; pullPointer = event.pointerId;
+  pull.begin(event.clientX, event.clientY, event.timeStamp);
+  dismissButton.setPointerCapture(event.pointerId);
+});
+dismissButton.addEventListener('pointermove', event => {
+  if (event.pointerId !== pullPointer) return;
+  // Keep the top controls stationary even when using the swipe-to-dismiss shortcut.
+  pull.move(event.clientX, event.clientY, event.timeStamp);
+});
+dismissButton.addEventListener('pointerup', event => {
+  if (event.pointerId !== pullPointer) return;
+  const result = pull.end(event.timeStamp);
+  suppressDismissClick = result.moved;
+  cancelPull();
+  if (result.dismiss) setInputMode(false);
+});
+for (const type of ['pointercancel', 'lostpointercapture']) dismissButton.addEventListener(type, () => {
+  if (pullPointer === undefined) return;
+  suppressDismissClick = true; cancelPull();
+});
+// A second finger cancels the pull rather than converting it into a dismissal.
+document.addEventListener('pointerdown', event => {
+  if (pullPointer !== undefined && event.pointerId !== pullPointer) {
+    suppressDismissClick = true; cancelPull();
+  }
+}, { capture: true });
+dismissButton.addEventListener('click', event => {
+  if (suppressDismissClick && event.detail !== 0) { suppressDismissClick = false; return; }
+  const keyboardActivated = event.detail === 0;
+  setInputMode(false);
+  if (keyboardActivated) modeButton.focus({ preventScroll: true });
+});
 // Dismissing the keyboard (the ✓ key or a tap outside) leaves keyboard mode. The mode
 // button toggles the mode itself, so wait a moment and only act if nothing else did.
 draft.addEventListener('blur', () => {
   if (!inputMode) return;
   setTimeout(() => {
-    if (inputMode && document.activeElement !== draft && document.visibilityState === 'visible') setInputMode(false);
+    if (inputMode && !dock.contains(document.activeElement) && document.visibilityState === 'visible') setInputMode(false);
   }, 250);
 });
 function canUseTrackpad() { return client.enabled && !inputMode && !sheet.open; }
@@ -318,7 +369,7 @@ for (const type of ['selectstart', 'contextmenu', 'dragstart']) document.addEven
 element('viewport').addEventListener('pointerdown', event => {
   if (!inputMode) return;
   const target = event.target as HTMLElement;
-  if (target.closest('#text-mode, .floating')) return;
+  if (target.closest('#keyboard-dock, .floating')) return;
   event.preventDefault();
   setInputMode(false);
 });
@@ -327,7 +378,7 @@ element('close-settings').addEventListener('click', () => sheet.close());
 element('retry').addEventListener('click', () => { void client.connect(); });
 function visibility(hidden: boolean) {
   awake.visibility(!hidden);
-  if (hidden) { cancelGesture(); submission.cancelQueued(); }
+  if (hidden) { cancelPull(); cancelGesture(); submission.cancelQueued(); }
   client.visibility(hidden);
 }
 document.addEventListener('visibilitychange', () => visibility(document.hidden));
@@ -338,16 +389,29 @@ window.addEventListener('offline', () => client.networkChanged());
 // A normal first touch also activates HTTP video fallback; no extra button needed.
 document.addEventListener('pointerup', event => { if (event.isTrusted) awake.resume(true); }, { capture: true, passive: true });
 document.addEventListener('keydown', event => { if (event.isTrusted) awake.resume(true); }, { capture: true, passive: true });
-window.addEventListener('orientationchange', cancelGesture);
-screen.orientation?.addEventListener('change', cancelGesture);
+function orientationChanged() { cancelPull(); cancelGesture(); }
+window.addEventListener('orientationchange', orientationChanged);
+screen.orientation?.addEventListener('change', orientationChanged);
+function viewportSize() {
+  const viewport = window.visualViewport;
+  return { width: viewport?.width ?? innerWidth, height: viewport?.height ?? innerHeight, scale: viewport?.scale ?? 1 };
+}
+let viewportFrame = 0;
 function viewportChanged() {
+  cancelAnimationFrame(viewportFrame);
+  viewportFrame = requestAnimationFrame(renderViewport);
+}
+function renderViewport() {
+  viewportFrame = 0;
   const viewport = window.visualViewport;
   document.documentElement.style.setProperty('--view-height', `${viewport?.height ?? innerHeight}px`);
   document.documentElement.style.setProperty('--view-top', `${viewport?.offsetTop ?? 0}px`);
+  if (inputMode && keyboardViewport.update(viewportSize())) setInputMode(false);
+  dock.dataset.keyboardVisible = String(keyboardViewport.visible);
 }
 window.visualViewport?.addEventListener('resize', viewportChanged);
 window.visualViewport?.addEventListener('scroll', viewportChanged);
-window.addEventListener('resize', viewportChanged); viewportChanged(); renderInputState(); renderMode();
+window.addEventListener('resize', viewportChanged); renderViewport(); renderInputState(); renderMode();
 // Any device on the local network can open this address and take control.
 if (location.hash) history.replaceState(null, '', location.pathname);
 void client.connect();

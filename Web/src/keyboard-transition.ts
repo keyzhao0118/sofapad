@@ -1,4 +1,4 @@
-/** One reversible timeline for the panel and the keyboard/chevron glyph. */
+/** One reversible opacity timeline for the stationary header and editor. */
 export class KeyboardTransition {
   private value = 0;
   private frame = 0;
@@ -11,12 +11,14 @@ export class KeyboardTransition {
     this.cancel(this.frame);
     this.frame = 0;
     const target = open ? 1 : 0, start = this.value, began = this.now();
+    // A reversal only travels the remaining distance. Closing is a little quicker.
+    const duration = (open ? 300 : 240) * Math.max(0.35, Math.abs(target - start));
     if (reducedMotion || start === target) {
       this.value = target; this.paint(target); return;
     }
     // Reversing mid-flight starts at the rendered position, never at an endpoint.
     const tick = (time: number) => {
-      const elapsed = Math.min(1, Math.max(0, (time - began) / 280));
+      const elapsed = Math.min(1, Math.max(0, (time - began) / duration));
       this.value = start + (target - start) * (1 - (1 - elapsed) ** 3);
       this.paint(this.value);
       this.frame = elapsed < 1 ? this.schedule(tick) : 0;

@@ -21,18 +21,22 @@
     <div id="keyboard-dock">
     <section id="text-mode" hidden aria-label="输入面板">
       <label class="sr-only" for="draft">要在 Mac 上输入的文字</label>
+      <div class="input-row">
       <div id="input-shell">
         <div id="ghost-layer" class="ghost-layer" aria-hidden="true"></div>
         <textarea id="draft" rows="1" placeholder="在这里输入文字…" autocomplete="off" spellcheck="true" aria-describedby="paste-notice"></textarea>
+      </div>
       </div>
       <p id="sync-hint" class="sync-hint" hidden>输入会实时同步到 Mac 光标处</p>
       <button id="paste" class="primary" disabled>贴入输入框</button>
     </section>
     <button id="mode-toggle" class="floating mode-button" aria-label="打开键盘" title="打开键盘" aria-expanded="false" aria-controls="text-mode">
       <svg class="keyboard-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <g class="keyboard-frame"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M7 10h.01M12 10h.01M17 10h.01"/></g>
-        <polyline id="keyboard-line" points="7,15 12,15 17,15"/>
+        <rect x="2" y="5" width="20" height="14" rx="3"/><path d="M7 10h.01M12 10h.01M17 10h.01M7 15h10"/>
       </svg>
+    </button>
+    <button id="dismiss-keyboard" class="floating mode-button dismiss-button" aria-label="收起键盘，也可向下滑动收起" title="收起键盘" aria-controls="text-mode" aria-hidden="true" inert>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
     </button>
     </div>
     <div id="connection-notice" class="notice" role="status"><span id="detail">正在连接 Mac…</span><button id="retry" hidden>重新连接</button></div>
