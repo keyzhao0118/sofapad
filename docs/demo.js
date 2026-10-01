@@ -1,11 +1,11 @@
 // A local illustration: no connection to the Mac, and no native input events.
 export const scenes = [
-  { id: 'play', boundaries: [.43, .5], samples: [.28, .46, .9], title: '移动与点击', action: '滑动，再轻点', result: '指针移动，视频开始播放', steps: ['单指滑动', '轻点播放', '大屏开始播放'] },
-  { id: 'scroll', boundaries: [.22, .78], samples: [.16, .57, .9], title: '单手滚动', action: '沿手机边缘上滑', result: '大屏列表同步向上滚动', steps: ['拇指落在边缘', '沿边缘上滑', '继续浏览列表'] },
-  { id: 'drag', boundaries: [.34, .369], samples: [.18, .355, .9], title: '拖动进度条', action: '轻点 → 再按住稍停 → 滑动', result: '按住左键，拖动播放进度', steps: ['轻点一次', '再次按住稍停', '滑动拖动，抬手结束'] },
-  { id: 'type', boundaries: [.22, .65], samples: [.18, .57, .95], title: '中文输入', action: '点键盘，用手机选词', result: '文字出现在 Mac 当前输入框', steps: ['先点中 Mac 输入框', '手机键盘选词', '提交到 Mac，收起键盘'] },
-  { id: 'double', boundaries: [.43, .468], samples: [.28, .46, .9], title: '双击打开', action: '快速轻点两次', result: 'Mac 打开选中的照片', steps: ['移动到照片', '快速轻点两次', '照片打开'] },
-  { id: 'right', boundaries: [.4, .461], samples: [.28, .43, .9], title: '长按右击', action: '静止按住约半秒', result: 'Mac 弹出右键菜单', steps: ['移动到目标', '静止按住约 0.5 秒', '右键菜单出现'] }
+  { id: 'play', caption: '滑动轻点，移动指针并开始播放。' },
+  { id: 'scroll', caption: '拇指沿边缘滑动，大屏页面同步滚动。' },
+  { id: 'drag', caption: '轻点后再按住滑动，拖动播放进度。' },
+  { id: 'type', caption: '用手机选词，中文直接输入到 Mac。' },
+  { id: 'double', caption: '快速轻点两次，打开大屏上的照片。' },
+  { id: 'right', caption: '静止按住半秒，呼出 Mac 右键菜单。' }
 ];
 const clamp = value => Math.max(0, Math.min(1, value));
 const ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
@@ -13,7 +13,7 @@ const between = (t, start, end) => clamp((t - start) / (end - start));
 const lerp = (a, b, t) => a + (b - a) * t;
 export function frameAt(id, time) {
   const t = clamp(time), move = ease(between(t, .08, .38));
-  const f = { t, step: t < .38 ? 0 : t < .7 ? 1 : 2, touch: false, x: 100, y: 235, cx: lerp(365, 280, move), cy: lerp(240, 155, move), pulse: 0, playing: false, scroll: 0, progress: .22, keyboard: 0, draft: '', text: '', photo: false, menu: false, hold: 0 };
+  const f = { t, touch: false, x: 100, y: 235, cx: lerp(365, 280, move), cy: lerp(240, 155, move), pulse: 0, playing: false, scroll: 0, progress: .22, keyboard: 0, draft: '', text: '', photo: false, menu: false, hold: 0 };
   if (id === 'play' || id === 'double' || id === 'right') {
     f.x = lerp(86, 120, move); f.y = lerp(245, 205, move); f.touch = t > .08 && t < .38;
     if (id === 'play') { f.touch ||= t > .43 && t < .5; f.pulse = Math.sin(Math.PI * between(t, .43, .64)); f.playing = t >= .5; f.progress = .22 + .12 * between(t, .5, .95); }
@@ -29,10 +29,7 @@ export function frameAt(id, time) {
     f.touch = (t > .2 && t < .25) || (t > .42 && t < .46) || (t > .61 && t < .65) || (t > .83 && t < .87);
     f.draft = t > .32 && t < .46 ? 'zhou mo' : t > .53 && t < .65 ? 'dian ying' : '';
     f.text = t >= .65 ? '周末电影' : t >= .46 ? '周末' : '';
-    f.step = t < .22 ? 0 : t < .65 ? 1 : 2;
   }
-  const scene = scenes.find(scene => scene.id === id);
-  if (scene) f.step = t < scene.boundaries[0] ? 0 : t < scene.boundaries[1] ? 1 : 2;
   return f;
 }
 
@@ -44,10 +41,7 @@ function mountDemo() {
   const opacity = (id, value) => { get(id).style.opacity = value; };
   let index = 0, time = 0, last = 0, raf = null, inView = false;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let paused = reduced.matches;
   const duration = 8200;
-  const controls = document.querySelectorAll('button[data-scene]');
-  const steps = root.querySelectorAll('[data-step]');
   function paint() {
     const scene = scenes[index], f = frameAt(scene.id, time);
     root.dataset.scene = scene.id;
@@ -70,42 +64,31 @@ function mountDemo() {
     setText('phone-draft', f.draft); setText('phone-candidate', time < .53 ? '周末' : '电影'); setText('mac-query', f.text || '搜索想看的电影');
     get('mac-query').setAttribute('fill', f.text ? '#293e30' : '#87917e');
     setText('video-time', scene.id === 'drag' ? (f.progress > .5 ? '01:06' : '00:22') : '00:22');
-    setText('phone-action', scene.action); setText('mac-result', scene.result);
-    root.style.setProperty('--demo-progress', time);
-    steps.forEach((button, i) => { button.textContent = `${i + 1}. ${scene.steps[i]}`; button.setAttribute('aria-current', i === f.step ? 'step' : 'false'); });
-  }
-  function syncControls() {
-    controls.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.scene === scenes[index].id)));
-    get('demo-pause').textContent = paused ? '播放演示' : '暂停';
-    get('demo-pause').setAttribute('aria-pressed', String(paused));
+    setText('demo-caption', scene.caption);
+    // Brief fade at each loop boundary; both devices and the caption change together.
+    const fade = reduced.matches ? 1 : ease(between(time, 0, .04)) * (1 - ease(between(time, .95, 1)));
+    root.style.setProperty('--demo-opacity', fade);
   }
   function tick(now) {
     raf = null;
-    if (paused || !inView || document.hidden) { last = 0; return; }
+    if (reduced.matches || !inView || document.hidden) { last = 0; return; }
     if (last) time += Math.min(now - last, 100) / duration;
     last = now;
-    if (time >= 1) { time = 0; index = (index + 1) % scenes.length; syncControls(); }
+    if (time >= 1) { time = 0; index = (index + 1) % scenes.length; }
     paint(); raf = requestAnimationFrame(tick);
   }
   function resume() {
     if (raf !== null) cancelAnimationFrame(raf);
     raf = null; last = 0;
-    if (!paused && inView && !document.hidden) raf = requestAnimationFrame(tick);
+    if (!reduced.matches && inView && !document.hidden) raf = requestAnimationFrame(tick);
   }
-  controls.forEach(button => button.addEventListener('click', () => {
-    index = scenes.findIndex(scene => scene.id === button.dataset.scene); time = reduced.matches ? .9 : 0;
-    syncControls(); paint(); resume();
-    if (!root.contains(button)) root.scrollIntoView({ behavior: reduced.matches ? 'instant' : 'smooth', block: 'start' });
-  }));
-  steps.forEach(button => button.addEventListener('click', () => {
-    paused = true; time = scenes[index].samples[Number(button.dataset.step)]; syncControls(); paint(); resume();
-  }));
-  get('demo-pause').addEventListener('click', () => { paused = !paused; syncControls(); resume(); });
-  get('demo-replay').addEventListener('click', () => { time = reduced.matches ? .9 : 0; paused = reduced.matches; syncControls(); paint(); resume(); });
-  reduced.addEventListener('change', () => { paused = reduced.matches; syncControls(); resume(); });
+  reduced.addEventListener('change', () => {
+    if (reduced.matches) time = .9;
+    paint(); resume();
+  });
   document.addEventListener('visibilitychange', resume);
   new IntersectionObserver(entries => { inView = entries[0].isIntersecting; resume(); }, { threshold: .1 }).observe(root);
-  time = reduced.matches ? .9 : 0; syncControls(); paint();
+  time = reduced.matches ? .9 : 0; paint();
   root.classList.add('demo-ready');
 }
 if (typeof document !== 'undefined') mountDemo();
