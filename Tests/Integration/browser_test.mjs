@@ -25,6 +25,10 @@ try {
   browser = await chromium.launch({ executablePath: process.env.CHROME_BINARY || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
   const context = await browser.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'zh-CN' });
   const page = await context.newPage(), errors = [], messages = [];
+  const toggleKeyboard = async () => {
+    const open = await page.evaluate(() => document.body.dataset.mode === 'input');
+    await page.locator(open ? '#dismiss-keyboard' : '#mode-toggle').click();
+  };
   page.on('pageerror', error => errors.push(error.message));
   page.on('websocket', socket => socket.on('framesent', event => { try { messages.push(JSON.parse(event.payload)); } catch {} }));
   await page.goto(info.url);
@@ -35,7 +39,7 @@ try {
   for (let i = 0; i < 20; i++) { await page.reload(); await page.waitForFunction(() => document.body.dataset.state === 'connected'); }
   assert.equal(await page.evaluate(() => document.body.dataset.mode), 'touch', 'always opens the trackpad');
   assert.equal(await page.locator('#remote-mode, input[name="control-mode"]').count(), 0);
-  assert.equal(await page.locator('#keyboard-line').getAttribute('points'), '7,15 12,15 17,15');
+  assert.equal(await page.locator('#mode-toggle svg rect').count(), 1);
   await page.locator('#open-settings').click();
   assert.equal(await page.locator('#pointer-speed').inputValue(), '50', 'the default pointer speed sits in the middle of the slider');
   assert.equal((await page.locator('#pointer-value').textContent()).trim(), '1.5×');
@@ -46,7 +50,7 @@ try {
   const settingsBox = await page.locator('#open-settings').boundingBox();
   assert.ok(settingsBox.x < 30 && settingsBox.y < 30 && settingsBox.width >= 44);
   const inputBox = await page.locator('#mode-toggle').boundingBox();
-  assert.deepEqual(inputBox, { x: 144.5, y: 780, width: 104, height: 48 }, 'keyboard handle stays centered above the bottom safe area');
+  assert.deepEqual(inputBox, { x: 331, y: 14, width: 48, height: 48 }, 'keyboard entry stays in the top-right header');
   assert.equal((await page.locator('#mode-toggle').textContent()).trim(), '', 'mode toggle uses icons without visible text');
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-label'), '打开键盘');
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-expanded'), 'false');
@@ -92,12 +96,13 @@ try {
   await delay(150);
   assert.equal(await page.evaluate(() => document.body.dataset.state), 'connected', 'closing the second controller leaves the first one alone');
   const beforeMode = messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type)).length;
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   assert.equal(await page.locator('#draft').evaluate(e => e === document.activeElement), true);
-  // Let the panel finish rising in before measuring it.
+  // Let the top panel finish fading in before measuring it.
   await page.waitForFunction(() => document.querySelector('#keyboard-dock').style.getPropertyValue('--keyboard-progress') === '1');
   assert.equal(await page.locator('#open-settings').isVisible(), false);
-  assert.equal(await page.locator('#mode-toggle').getAttribute('aria-label'), '收起键盘');
+  assert.equal(await page.locator('#mode-toggle').getAttribute('aria-hidden'), 'true');
+  assert.equal(await page.locator('#dismiss-keyboard').isVisible(), true);
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-expanded'), 'true');
   // This host advertises live typing, so the manual clipboard controls stay hidden.
   assert.equal(await page.locator('#paste').isVisible(), false);
@@ -107,12 +112,12 @@ try {
   // Input mode is a panel over the trackpad, not a separate page.
   assert.deepEqual(await page.locator('#surface').boundingBox(), { x: 0, y: 0, width: 393, height: 852 });
   const panelBox = await page.locator('#text-mode').boundingBox();
-  assert.ok(panelBox.y > 600 && panelBox.y + panelBox.height <= 784, `input panel sits above the bottom handle: ${JSON.stringify(panelBox)}`);
-  assert.equal(await page.locator('#keyboard-line').getAttribute('points'), '5,9 12,16 19,9');
+  assert.equal(panelBox.y, 78, 'input panel stays under the header');
   assert.equal(await page.locator('#draft').getAttribute('readonly'), null);
-  const returnBox = await page.locator('#mode-toggle').boundingBox();
+  const returnBox = await page.locator('#dismiss-keyboard').boundingBox();
   const draftBox = await page.locator('#draft').boundingBox();
-  assert.ok(draftBox.y + draftBox.height < returnBox.y, `input textarea stays above the dismiss handle: ${JSON.stringify({ draftBox, returnBox })}`);
+  assert.deepEqual(returnBox, inputBox, 'open and close controls occupy the identical header position');
+  assert.ok(draftBox.y > returnBox.y + returnBox.height, 'editor stays below the header');
   assert.ok(draftBox.height >= 44 && draftBox.height <= 64, `live typing keeps the field one line tall: ${draftBox.height}`);
   const edits = () => messages.filter(m => m.type === 'edit');
   const chips = () => page.locator('#ghost-layer .ghost').allTextContents();
@@ -137,7 +142,7 @@ try {
   assert.ok(echoed.y >= draftBox.y - 4 && echoed.y + echoed.height <= draftBox.y + draftBox.height + 4,
     'the echo rests inside the input line first');
   const echoStyle = await page.locator('#ghost-layer .ghost').last().evaluate(e => ({ size: parseFloat(getComputedStyle(e).fontSize), left: e.getBoundingClientRect().x }));
-  assert.ok(Math.abs(echoStyle.left - (draftBox.x + 19)) < 6, `the echo appears at the caret: ${JSON.stringify(echoStyle)} vs ${draftBox.x + 19}`);
+  assert.ok(Math.abs(echoStyle.left - (draftBox.x + 15)) < 6, `the echo appears at the caret: ${JSON.stringify(echoStyle)} vs ${draftBox.x + 15}`);
   assert.ok(echoStyle.size >= 19, `the echoed character is bigger than the field text: ${echoStyle.size}`);
   await delay(1500);
   assert.equal(await page.locator('#ghost-layer .ghost').count(), 0, 'then it floats up and fades away');
@@ -159,7 +164,7 @@ try {
   assert.equal(messages.filter(m => m.type === 'paste').length, 0, 'live typing never falls back to the clipboard');
   assert.equal(messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type)).length, beforeMode);
   await page.screenshot({ path: join(artifacts, 'phone-input.png') });
-  await page.locator('#mode-toggle').click(); await page.locator('#mode-toggle').click();
+  await toggleKeyboard(); await toggleKeyboard();
   assert.equal(await page.locator('#draft').inputValue(), sentinel);
   // Composition events in one task: the candidate buffer stays on the phone, the commit reaches the Mac.
   await page.evaluate(() => {
@@ -221,22 +226,45 @@ try {
   // Model the smaller visible area with the keyboard open; real iOS keyboard still needs a device.
   await page.setViewportSize({ width: 393, height: 330 });
   await page.waitForFunction(() => Math.abs(document.querySelector('#viewport').getBoundingClientRect().height - visualViewport.height) < 1 && visualViewport.height < 331);
-  for (const selector of ['#draft', '#sync-hint', '#mode-toggle']) {
+  for (const selector of ['#draft', '#sync-hint', '#dismiss-keyboard']) {
     const box = await page.locator(selector).boundingBox(); assert.ok(box.y >= 0 && box.y + box.height <= 330, `${selector}: ${JSON.stringify(box)}`);
   }
+  assert.equal((await page.locator('#text-mode').boundingBox()).y, panelBox.y, 'keyboard resize never lifts the input panel');
+  assert.deepEqual(await page.locator('#dismiss-keyboard').boundingBox(), inputBox, 'keyboard resize never lifts the header button');
   for (const selector of ['#paste', '#backspace']) assert.equal(await page.locator(selector).isVisible(), false);
   await page.screenshot({ path: join(artifacts, 'phone-input-compact.png') });
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   assert.notEqual(await page.locator('#draft').evaluate(e => e === document.activeElement), true);
   await page.setViewportSize({ width: 393, height: 852 });
+  // A horizontal movement on the dismiss control must not become a tap-close.
+  await toggleKeyboard();
+  await page.waitForFunction(() => document.querySelector('#keyboard-dock').style.getPropertyValue('--keyboard-progress') === '1');
+  let closeBox = await page.locator('#dismiss-keyboard').boundingBox();
+  await page.mouse.move(closeBox.x + 24, closeBox.y + 24); await page.mouse.down();
+  await page.mouse.move(closeBox.x - 10, closeBox.y + 24, { steps: 4 }); await page.mouse.up();
+  assert.equal(await page.evaluate(() => document.body.dataset.mode), 'input');
+  // Downward pull owns its pointer, even after leaving the button, and sends no Mac input.
+  const beforePull = messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type)).length;
+  closeBox = await page.locator('#dismiss-keyboard').boundingBox();
+  await page.mouse.move(closeBox.x + 24, closeBox.y + 5); await page.mouse.down();
+  await page.mouse.move(closeBox.x + 24, closeBox.y + 52, { steps: 6 }); await page.mouse.up();
+  await page.waitForFunction(() => document.body.dataset.mode === 'touch');
+  assert.equal(messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type)).length, beforePull);
+  // Native keyboard dismissal can restore the viewport without blurring the field.
+  await toggleKeyboard();
+  await page.setViewportSize({ width: 393, height: 400 });
+  await page.waitForFunction(() => document.querySelector('#keyboard-dock').dataset.keyboardVisible === 'true');
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.waitForFunction(() => document.body.dataset.mode === 'touch');
+  assert.deepEqual(await page.locator('#mode-toggle').boundingBox(), inputBox, 'native dismissal leaves the entry in place');
   // Dismissing the keyboard (the ✓ key or a tap outside) returns to the trackpad.
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-expanded'), 'true');
   await page.locator('#draft').evaluate(e => e.blur());
   await page.waitForFunction(() => document.body.dataset.mode === 'touch');
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-expanded'), 'false');
   // Tapping the trackpad closes the panel and the keyboard the same way.
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   assert.equal(await page.locator('#mode-toggle').getAttribute('aria-expanded'), 'true');
   const pointerMessages = () => messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type)).length;
   const beforeDismiss = pointerMessages();
@@ -261,7 +289,7 @@ try {
   await page.evaluate(() => document.querySelector('#mode-toggle').click());
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await delay(80); assert.ok(messages.some(m => m.type === 'drag' && m.phase === 'cancel'));
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   const mouseMessages = () => messages.filter(m => ['click', 'move', 'scroll', 'drag'].includes(m.type));
   const single = [{ x: 150, y: 300, id: 1 }];
   const longPressStart = mouseMessages().length;
@@ -297,7 +325,7 @@ try {
     await touch('touchStart'); await page.locator(selector).evaluate(e => e.click());
     await delay(650); await touch('touchEnd'); await delay(50);
     assert.equal(mouseMessages().length, before);
-    await page.locator(selector === '#open-settings' ? '#close-settings' : '#mode-toggle').click();
+    await page.locator(selector === '#open-settings' ? '#close-settings' : '#dismiss-keyboard').click();
   }
   for (const [side, x, outside] of [['left', 12, 80], ['right', 380, 310]]) {
     assert.deepEqual(await page.locator(`#scroll-${side}`).boundingBox(), { x: side === 'left' ? 0 : 365, y: 0, width: 28, height: 852 });
@@ -348,7 +376,7 @@ try {
       await touch('touchEnd');
     } else if (cancel === 'keyboard') {
       await page.locator('#mode-toggle').evaluate(e => e.click()); await touch('touchEnd');
-      await page.locator('#mode-toggle').click();
+      await toggleKeyboard();
     } else await touch('touchCancel');
     await delay(50);
     const actions = mouseMessages().slice(before);
@@ -386,7 +414,7 @@ try {
   await page.locator('#open-settings').click(); await page.locator('#settings-title').dblclick();
   assert.equal(await page.evaluate(() => getSelection().toString()), '');
   assert.equal(await page.locator('#settings-title').evaluate(e => getComputedStyle(e).userSelect), 'none');
-  await page.locator('#close-settings').click(); await page.locator('#mode-toggle').click();
+  await page.locator('#close-settings').click(); await toggleKeyboard();
   assert.equal(await page.locator('#draft').evaluate(e => getComputedStyle(e).userSelect), 'text');
   await page.locator('#draft').fill('editable draft');
   // The live-typing field only ever holds the scratch buffer, so select all of what is there.
@@ -394,12 +422,12 @@ try {
   assert.equal(await page.locator('#draft').inputValue(), sentinel, 'typing leaves the box empty for the next character');
   const cancelledSelection = await page.locator('#surface').evaluate(e => !e.dispatchEvent(new Event('selectstart', { bubbles: true, cancelable: true })));
   assert.equal(cancelledSelection, true);
-  await page.locator('#mode-toggle').click();
+  await toggleKeyboard();
   await page.evaluate(() => localStorage.setItem('sofapad-control-mode', 'unknown'));
   await page.reload(); await page.waitForFunction(() => document.body.dataset.state === 'connected');
   assert.equal(await page.evaluate(() => document.body.dataset.mode), 'touch', 'obsolete mode preferences cannot restore remote');
   assert.deepEqual(errors, []);
-  console.log('PASS: Chromium open access (no pairing, no cookie), 20 reloads, full trackpad, bottom keyboard handle, input panel rising above the dismiss handle, type-through one-line input (field cleared per commit, echo rests in the line then floats up and fades, chips for text and ⌫/↵, sentinel delete key, real Return key press, 512-byte chunks, deferred IME commit, pinyin correction stays local, dictation waiting for a pause then typing once, dismissing the keyboard returns to the trackpad), two controllers at once, 500 ms right-click and cancellation, double-tap drag, two/three fingers, both scroll edges with the wider decision band, cross-zone capture and 40% baseline, cancellation/mixed contacts, Mac settings synchronization and reset, selection suppression, compact input and landscape. No system input generated.');
+  console.log('PASS: Chromium open access (no pairing, no cookie), 20 reloads, full trackpad, fixed top-right keyboard control and top input panel, type-through one-line input (field cleared per commit, echo rests in the line then floats up and fades, chips for text and ⌫/↵, sentinel delete key, real Return key press, 512-byte chunks, deferred IME commit, pinyin correction stays local, dictation waiting for a pause then typing once, dismissing the keyboard returns to the trackpad), two controllers at once, 500 ms right-click and cancellation, double-tap drag, two/three fingers, both scroll edges with the wider decision band, cross-zone capture and 40% baseline, cancellation/mixed contacts, Mac settings synchronization and reset, selection suppression, compact input and landscape. No system input generated.');
   console.log('Screenshots: build/validation/');
 } finally {
   if (browser) await browser.close(); server.kill('SIGTERM');
