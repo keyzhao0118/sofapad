@@ -30,9 +30,9 @@
 
 ## GitHub Pages
 
-仓库 Settings → Pages → Build and deployment：选择 **Deploy from a branch**，分支 **main**，目录 **/docs**。`docs/.nojekyll` 保留，入口为 `docs/index.html`，样式为 `docs/site.css`，图标和截图在 `docs/images/`。
+仓库 Settings → Pages → Build and deployment：选择 **Deploy from a branch**，分支 **main**，目录 **/docs**。`docs/.nojekyll` 保留，入口为 `docs/index.html`，样式为 `docs/site.css`，同步演示为 `docs/demo.js`（本地 ES module），图标和截图在 `docs/images/`。
 
-宣传页以中文为主，完整说明适用场景、当前功能、安装连接、手势、输入、设置和常见问题。它是静态介绍与下载页，不提供遥控连接；用户仍需打开自己 Mac 菜单里的局域网地址。无第三方字体、追踪脚本或运行时依赖。
+宣传页以中文为主，首屏用六段手机／Mac 同步动画展示移动点击、边缘滚动、拖动、中文输入、双击与长按右击。场景卡可以跳转到对应演示；完整手势、输入与设置收进可展开指南，安装和 FAQ 保留。它是介绍与下载页，不提供遥控连接；用户仍需打开自己 Mac 菜单里的局域网地址。无第三方字体、追踪脚本或框架依赖。演示维护方式见 [动态宣传页](promotion-demo.md)。
 
 发布后检查 Pages 部署成功、页面 HTTP 200、图像与样式正常、PKG／ZIP 下载链接指向最新版本。源码更新推到 main 后，Pages 自动部署。下一版需同步更改首页两处下载链接、版本显示、README 与安装教程。
 

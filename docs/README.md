@@ -12,6 +12,7 @@
 | [validation.md](validation.md) | 实际测试结果与真机待测项 |
 | [roadmap.md](roadmap.md) | 从未完成项继续的开发安排 |
 | [中文产品介绍页](https://keyzhao0118.github.io/sofapad/) | 场景、功能、安装连接、手势、输入、设置与下载 |
+| [promotion-demo.md](promotion-demo.md) | 动态宣传页、手机／Mac 同步演示与网页验收 |
 | [releasing.md](releasing.md) | GitHub Release、安装包校验和 Pages 维护 |
 | [third-party-notices.md](third-party-notices.md) | 依赖版本、许可证与致谢 |
 

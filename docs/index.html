@@ -23,50 +23,72 @@
 <div class="nav-links"><a href="#scenarios">适用场景</a><a href="#features">功能</a><a href="#start">怎么用</a><a href="#faq">常见问题</a><a class="nav-download" href="#download">下载</a></div>
 </nav></header>
 <main id="main">
-<section class="hero"><div class="wrap hero-layout">
-<div class="hero-copy">
-<p class="eyebrow">手机无需安装 · 局域网直连 · 免费开源</p>
-<h1>坐在沙发上，<br>用手机控制 Mac。</h1>
-<p class="tagline">电视看画面，手机当触控板。</p>
-<p class="lede">给连着电视的 Mac 配一个随手可用的遥控器。滑动、点击、滚动，再用手机键盘输入中文——只在 Mac 安装 SofaPad，手机浏览器打开地址就能用。</p>
-<div class="actions"><a class="button primary" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10.pkg">下载 Mac 安装包 <span aria-hidden="true">↓</span></a><a class="button" href="#start">查看使用方法</a></div>
-<p class="note">0.9.10 · Apple Silicon · macOS 13 及以上</p>
-<p class="note distribution">当前为开发预览：未经过 Apple 公证，首次安装可能需要在系统设置中允许打开。</p>
+<section class="hero"><div class="wrap hero-copy">
+<p class="eyebrow">手机无需安装 · 同一局域网 · 免费开源</p>
+<h1>坐在沙发上，用手机控制 Mac。</h1>
+<p class="tagline">大屏看画面。手机当触控板，也当键盘。</p>
+<div class="actions"><a class="button primary" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10.pkg">下载 Mac 安装包 ↓</a><a class="button" href="#start">三步开始</a></div>
+<p class="note">0.9.10 · Apple Silicon · macOS 13+ · 开发预览，未公证</p>
+</div><section id="demo" class="demo wrap" aria-label="手机与 Mac 同步操作模拟演示">
+<div class="demo-top"><p><span class="live-dot" aria-hidden="true"></span>手机这样操作，大屏这样响应</p><div class="demo-controls"><button id="demo-pause" type="button" aria-pressed="false">暂停</button><button id="demo-replay" type="button">重播 ↻</button></div></div>
+<div class="demo-stage">
+<figure class="demo-computer"><div class="device-label">电视 / Mac 大屏</div>
+<svg viewBox="0 0 570 360" role="img" aria-label="模拟 Mac 画面：指针移动、播放、滚动、拖动和中文搜索">
+<defs><clipPath id="mac-screen-clip"><rect x="17" y="14" width="536" height="302" rx="12"/></clipPath><linearGradient id="film-sky" x2="0" y2="1"><stop stop-color="#bdcbbb"/><stop offset="1" stop-color="#e5e8dc"/></linearGradient></defs>
+<rect x="6" y="3" width="558" height="324" rx="20" fill="#293a30"/><g clip-path="url(#mac-screen-clip)"><rect x="17" y="14" width="536" height="302" fill="#f5f5ed"/>
+<rect x="17" y="14" width="536" height="24" fill="#e6e9df"/><circle cx="32" cy="26" r="3" fill="#a3b199"/><circle cx="44" cy="26" r="3" fill="#bcc5b4"/><circle cx="56" cy="26" r="3" fill="#cdd3c5"/><text x="81" y="30" font-size="9" fill="#66765e">SofaPad · 场景示意</text>
+<g class="mac-scene scene-video"><rect x="34" y="51" width="502" height="210" rx="9" fill="url(#film-sky)"/><circle cx="407" cy="100" r="25" fill="#f5f4df"/><path d="M34 236 162 96 254 194 351 112 536 253V261H34Z" fill="#a1b49c"/><path d="m34 253 144-84 107 59 95-48 156 80H34Z" fill="#758f77"/><path d="m161 96-28 32 29-11 26 12Z" fill="#eef0e4"/>
+<g id="video-play"><circle cx="280" cy="155" r="26" fill="#f7f7ee" fill-opacity=".9"/><path d="m274 143 19 12-19 12Z" fill="#3e5a3b"/></g><g id="video-pause" opacity="0"><rect x="41" y="278" width="3" height="11" fill="#3e5a3b"/><rect x="47" y="278" width="3" height="11" fill="#3e5a3b"/></g>
+<g id="video-playing" opacity="0"><rect x="45" y="64" width="83" height="22" rx="11" fill="#f5f5ed"/><circle cx="56" cy="75" r="3" fill="#718967"/><text x="65" y="79" font-size="10" fill="#3e5a3b">正在播放</text></g>
+<rect x="52" y="282" width="480" height="5" rx="2.5" fill="#d6dccd"/><rect id="video-progress" x="52" y="282" width="106" height="5" rx="2.5" fill="#718967"/><circle id="video-knob" cx="158" cy="285" r="6" fill="#3e5a3b"/><text id="video-time" x="54" y="305" font-size="9" fill="#697960">00:22</text><text x="496" y="305" font-size="9" fill="#697960">01:40</text></g>
+<g class="mac-scene scene-scroll"><text x="40" y="67" font-size="17" fill="#293e30">周末，慢慢看。</text><g clip-path="url(#list-clip)"><defs><clipPath id="list-clip"><rect x="36" y="84" width="502" height="232"/></clipPath></defs><g id="demo-list"><rect x="38" y="88" width="494" height="77" rx="10" fill="#e9ede2"/><rect x="48" y="98" width="102" height="57" rx="6" fill="#a5b9a2"/><path d="m48 145 34-29 25 19 20-12 23 22Z" fill="#f4f5eb" fill-opacity=".5"/><text x="167" y="120" font-size="14" fill="#293e30">山野之间</text><text x="167" y="142" font-size="10" fill="#6c7c63">去远一点的地方</text><rect x="38" y="177" width="494" height="77" rx="10" fill="#e9ede2"/><rect x="48" y="187" width="102" height="57" rx="6" fill="#c6c8ae"/><path d="m48 234 34-29 25 19 20-12 23 22Z" fill="#f4f5eb" fill-opacity=".5"/><text x="167" y="209" font-size="14" fill="#293e30">午后微光</text><text x="167" y="231" font-size="10" fill="#6c7c63">收藏一段好时光</text><rect x="38" y="266" width="494" height="77" rx="10" fill="#e9ede2"/><rect x="48" y="276" width="102" height="57" rx="6" fill="#aabfc0"/><path d="m48 323 34-29 25 19 20-12 23 22Z" fill="#f4f5eb" fill-opacity=".5"/><text x="167" y="298" font-size="14" fill="#293e30">海边来信</text><text x="167" y="320" font-size="10" fill="#6c7c63">听风，看海</text><rect x="38" y="355" width="494" height="77" rx="10" fill="#e9ede2"/><rect x="48" y="365" width="102" height="57" rx="6" fill="#c3bda5"/><path d="m48 412 34-29 25 19 20-12 23 22Z" fill="#f4f5eb" fill-opacity=".5"/><text x="167" y="387" font-size="14" fill="#293e30">城市漫步</text><text x="167" y="409" font-size="10" fill="#6c7c63">发现熟悉的街角</text></g></g></g>
+<g class="mac-scene scene-type"><rect x="36" y="56" width="496" height="41" rx="12" fill="#fff" stroke="#9bad8e"/><circle cx="56" cy="74" r="6" fill="none" stroke="#87917e"/><path d="m61 79 5 5" stroke="#87917e"/><text id="mac-query" x="78" y="82" font-size="15" fill="#87917e">搜索想看的电影</text><text x="39" y="129" font-size="12" fill="#6c7c63">在大屏上搜索，用手机输入。</text><rect x="38" y="149" width="151" height="127" rx="9" fill="#c6d2bd"/><rect x="207" y="149" width="151" height="127" rx="9" fill="#d1cbbb"/><rect x="376" y="149" width="151" height="127" rx="9" fill="#b8ccca"/><path d="m38 246 59-57 40 30 52-21v78H38Z" fill="#8ba88a"/><circle cx="283" cy="204" r="27" fill="#ece8d6"/><path d="M376 239Q449 204 527 242V276H376Z" fill="#8dabaa"/></g>
+<g class="mac-scene scene-photo"><text x="40" y="67" font-size="17" fill="#293e30">周末相册</text><rect x="40" y="87" width="194" height="136" rx="10" fill="#b8c8b0" stroke="#69825d" stroke-width="2"/><path d="m41 202 66-68 49 43 35-26 42 60v12H41Z" fill="#718f72"/><circle cx="185" cy="121" r="16" fill="#f0ecd5"/><rect x="250" y="87" width="130" height="136" rx="10" fill="#d0c7b2"/><rect x="397" y="87" width="130" height="136" rx="10" fill="#acc5c3"/><text x="41" y="246" font-size="11" fill="#697960">山野之间.jpg</text><g id="photo-open" opacity="0"><rect x="17" y="38" width="536" height="278" fill="#c4d0b9"/><circle cx="424" cy="101" r="32" fill="#f2ecd2"/><path d="m17 284 150-159 114 101 118-72 154 131v31H17Z" fill="#718f72"/><text x="39" y="64" font-size="12" fill="#293e30">山野之间.jpg · 已打开</text></g></g>
+<g class="mac-scene scene-right"><rect x="37" y="53" width="495" height="238" rx="10" fill="#e5eade"/><rect x="151" y="106" width="150" height="113" rx="12" fill="#bacab2"/><path d="m152 202 50-52 34 24 27-20 37 54v11H152Z" fill="#718f72"/><text x="184" y="241" font-size="12" fill="#697960">旅行照片</text><g id="context-menu" opacity="0"><rect x="231" y="155" width="140" height="125" rx="10" fill="#fdfdf6" stroke="#ccd5c2"/><text x="249" y="180" font-size="11" fill="#293e30">打开</text><path d="M243 191H359" stroke="#d9dece"/><text x="249" y="213" font-size="11" fill="#293e30">显示简介</text><text x="249" y="237" font-size="11" fill="#293e30">重命名</text><text x="249" y="261" font-size="11" fill="#293e30">分享…</text></g></g>
+<circle id="demo-click" cx="280" cy="155" r="9" fill="none" stroke="#fff" stroke-width="3" opacity="0"/><g id="demo-cursor" transform="translate(365 240)"><path d="M0 0 1 20 6 15 10 23 14 21 10 13 18 13Z" fill="#293e30" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></g></g>
+<path d="M258 327H312L319 345H251Z" fill="#b4beb0"/><rect x="221" y="345" width="128" height="7" rx="3.5" fill="#a8b4a2"/>
+</svg><figcaption id="mac-result">指针移动，视频开始播放</figcaption></figure>
+<div class="demo-link" aria-hidden="true"><span>同步</span>↔</div>
+<figure class="demo-phone"><div class="device-label">你的手机</div>
+<svg viewBox="0 0 200 400" role="img" aria-label="模拟手机操作：手指滑动与轻点，以及原生键盘示意">
+<defs><pattern id="pad-dots" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".5" fill="#a9b69a" fill-opacity=".35"/></pattern><clipPath id="phone-screen-clip"><rect x="6" y="6" width="188" height="388" rx="25"/></clipPath><linearGradient id="phone-edge"><stop stop-color="#8fa876" stop-opacity=".2"/><stop offset="1" stop-color="#8fa876" stop-opacity="0"/></linearGradient></defs>
+<rect x="1" y="1" width="198" height="398" rx="30" fill="#f7f8f1" stroke="#b7c2ad" stroke-width="1.5"/>
+<g clip-path="url(#phone-screen-clip)"><rect x="6" y="6" width="188" height="388" fill="#e8eade"/><rect x="6" y="6" width="188" height="388" fill="url(#pad-dots)"/><rect x="6" y="6" width="37" height="388" fill="url(#phone-edge)"/><rect x="6" y="6" width="37" height="388" fill="url(#phone-edge)" transform="translate(200 0) scale(-1 1)"/><path d="M13 187v28M187 187v28" stroke="#7f9460" stroke-opacity=".35" stroke-linecap="round"/><rect id="phone-scroll-active" x="173" y="8" width="19" height="384" fill="#8fa876" opacity="0"/>
+<circle cx="32" cy="34" r="16" fill="#f4f5ed"/><path d="M25 29h14M25 38h14" stroke="#596e50" stroke-width="1.5"/><circle cx="29" cy="29" r="2.5" fill="#f4f5ed" stroke="#596e50"/><circle cx="35" cy="38" r="2.5" fill="#f4f5ed" stroke="#596e50"/>
+<circle cx="170" cy="34" r="16" fill="#f4f5ed"/><g id="phone-keyboard-icon" fill="none" stroke="#596e50" stroke-width="1.5"><rect x="160" y="27" width="20" height="14" rx="3"/><path d="M165 31h1m4 0h1m4 0h1m-11 6h10"/></g><path id="phone-dismiss-icon" d="m164 32 6 6 6-6" fill="none" stroke="#596e50" stroke-width="2" opacity="0"/>
+<g id="phone-input" opacity="0"><rect x="16" y="62" width="168" height="50" rx="12" fill="#f7f8f0"/><rect x="22" y="68" width="156" height="28" rx="7" fill="#fff" fill-opacity=".65" stroke="#d4dacb"/><text id="phone-draft" x="30" y="87" font-size="11" fill="#3e5a3b"></text><text x="100" y="106" font-size="7" fill="#637158" text-anchor="middle">选词后发送到 Mac</text></g>
+<text x="100" y="225" text-anchor="middle" class="phone-touch-label" font-size="9" fill="#8b997e">整屏触控区域</text>
+<g id="phone-keyboard" opacity="0"><rect x="6" y="270" width="188" height="124" fill="#dfe3db"/><rect x="6" y="270" width="188" height="25" fill="#eff1e9"/><text id="phone-candidate" x="22" y="287" font-size="12" fill="#3e5a3b">周末</text><text x="84" y="287" font-size="9" fill="#88947e">中文候选词</text><rect x="11" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="18.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">Q</text><rect x="29" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="36.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">W</text><rect x="47" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="54.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">E</text><rect x="65" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="72.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">R</text><rect x="83" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="90.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">T</text><rect x="101" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="108.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">Y</text><rect x="119" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="126.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">U</text><rect x="137" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="144.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">I</text><rect x="155" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="162.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">O</text><rect x="173" y="301" width="15" height="19" rx="3" fill="#f9faf5"/><text x="180.5" y="314" text-anchor="middle" font-size="8" fill="#62735b">P</text><rect x="19" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="26.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">A</text><rect x="37" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="44.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">S</text><rect x="55" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="62.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">D</text><rect x="73" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="80.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">F</text><rect x="91" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="98.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">G</text><rect x="109" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="116.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">H</text><rect x="127" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="134.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">J</text><rect x="145" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="152.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">K</text><rect x="163" y="324" width="15" height="19" rx="3" fill="#f9faf5"/><text x="170.5" y="337" text-anchor="middle" font-size="8" fill="#62735b">L</text><rect x="34" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="41.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">Z</text><rect x="52" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="59.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">X</text><rect x="70" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="77.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">C</text><rect x="88" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="95.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">V</text><rect x="106" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="113.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">B</text><rect x="124" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="131.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">N</text><rect x="142" y="347" width="15" height="19" rx="3" fill="#f9faf5"/><text x="149.5" y="360" text-anchor="middle" font-size="8" fill="#62735b">M</text><rect x="48" y="370" width="101" height="16" rx="4" fill="#f9faf5"/><text x="99" y="382" text-anchor="middle" font-size="8" fill="#62735b">空格</text><text x="166" y="382" font-size="8" fill="#62735b">↵</text></g>
+<path id="phone-trail" d="M86 245L86 245" fill="none" stroke="#a78654" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 5" opacity="0"/><g id="demo-finger" transform="translate(86 245)"><circle r="22" fill="#a78654" fill-opacity=".08"/><circle r="13" fill="#f1dfc4" fill-opacity=".8" stroke="#a78654" stroke-width="1.5"/><circle r="3" fill="#a78654"/><circle id="phone-hold" r="15" fill="none" stroke="#a78654" stroke-width="2" transform="rotate(-90)" stroke-dasharray="0 94" opacity="0"/></g></g>
+</svg><figcaption id="phone-action">滑动，再轻点</figcaption></figure>
 </div>
-<figure class="hero-device"><div class="phone-frame"><img src="images/phone-trackpad.png" width="393" height="852" alt="SofaPad 整屏触控板：左上角设置、右上角键盘，两侧柔和滚动区"></div><figcaption>大部分屏幕都留给你的手指。</figcaption></figure>
-</div></section>
+<div class="demo-steps" aria-label="演示步骤"><button type="button" data-step="0" aria-current="step">1. 单指滑动</button><button type="button" data-step="1">2. 轻点播放</button><button type="button" data-step="2">3. 大屏开始播放</button></div>
+<div class="demo-progress" aria-hidden="true"><span></span></div>
+<div class="demo-scenes" role="group" aria-label="选择功能演示"><button type="button" data-scene="play" aria-pressed="true">移动与点击</button><button type="button" data-scene="scroll" aria-pressed="false">单手滚动</button><button type="button" data-scene="drag" aria-pressed="false">拖动进度条</button><button type="button" data-scene="type" aria-pressed="false">中文输入</button><button type="button" data-scene="double" aria-pressed="false">双击打开</button><button type="button" data-scene="right" aria-pressed="false">长按右击</button></div>
+<p class="demo-note">模拟演示 · 手机不显示 Mac 画面 · 键盘为示意，实际使用手机原生键盘</p>
+<noscript><p class="demo-note">启用 JavaScript 可播放同步演示；完整操作方法见下方使用指南。</p></noscript>
+</section></section>
 <section id="scenarios" class="wrap section">
-<p class="eyebrow">适用场景</p><h2>鼠标够不到，手机就在手边。</h2>
-<div class="grid three">
-<article><span class="card-number">01</span><h3>客厅里的 Mac mini</h3><p>Mac 连接电视，坐在沙发上打开视频网页、点击播放、拖动进度条和搜索片名，减少拿起实体键鼠的次数。</p></article>
-<article><span class="card-number">02</span><h3>接大屏的 MacBook</h3><p>看照片、浏览网页或翻阅文档时，在同一房间用手机移动指针、点击和滚动，操作结果直接看大屏。</p></article>
-<article><span class="card-number">03</span><h3>需要输入几个字的时候</h3><p>用熟悉的手机中文输入法选词、输入 Emoji，或通过手机键盘的听写功能输入搜索词，无需拿出实体键盘。</p></article>
-</div>
-<p class="section-note">这是同一局域网里的鼠标与文字输入工具。手机不显示 Mac 画面，也不提供远程开机、解锁或跨公网控制。</p>
-</section>
-<section id="features" class="wrap section">
-<p class="eyebrow">完整功能</p><h2>常用操作，留在一块触控板上。</h2>
-<div class="grid three">
-<article><h3>整屏触控板</h3><p>单指移动、轻点单击、快速双击；长按约半秒或双指轻点右击。支持三指拖动，也支持单指轻点后按住拖动。</p></article>
-<article><h3>左右边缘滚动</h3><p>两侧窄区上下滑动即可滚动，也可以在中央双指滑动。边缘提示向内柔和渐隐，滚动时加深，让拇指操作更自然。</p></article>
-<article><h3>原生手机键盘</h3><p>右上角一键呼出手机键盘，输入条固定顶部。选词后的文字即时键入 Mac 当前光标处，退格和回车也会发送。</p></article>
-<article><h3>按你的手感调整</h3><p>独立调节指针与拖动速度、滚动速度，并选择自然滚动方向。滑块中点就是默认值，往两侧都能细调。</p></article>
-<article><h3>设置跟着 Mac 走</h3><p>四项设置统一保存在 Mac：指针速度、滚动速度、滚动方向、屏幕常亮。重启后保留，手机重新连接自动读取，多台手机在线同步。</p></article>
-<article><h3>前台常亮开关</h3><p>设置里可以手动开关。支持时使用系统常亮机制，否则尝试本地无声视频兼容保活；离开页面即停止，面板显示运行状态。</p></article>
-<article><h3>多设备接入</h3><p>手机、平板或电脑浏览器都能打开同一地址。每台设备独立连接；手势冲突时先开始者优先，Mac 菜单可断开单个或全部设备。</p></article>
-<article><h3>轻量菜单栏 App</h3><p>不占 Dock，网页与服务都内置。启动自动开启服务，显示主机名与 IP 地址；可以停止服务，也支持登录时启动。</p></article>
-<article><h3>无需云账户</h3><p>控制流量留在局域网，不依赖云服务、账号或手机 App。应用不上传遥测、不自动更新，源码采用 MIT 许可。</p></article>
+<p class="eyebrow">手机在手边，就够了</p><h2>你的沙发，离大屏更近一点。</h2>
+<div class="grid three scenario-cards">
+<article><div class="scene-art lounge" aria-hidden="true"><span class="room-tv">▶</span><span class="room-console"></span><span class="room-sofa"></span><span class="room-phone"></span><span class="room-signal">···</span></div><h3>客厅看电影</h3><p>打开视频，拖动进度，搜一部想看的电影。</p><button type="button" data-scene="drag">看拖动演示 ↗</button></article>
+<article><div class="scene-art reading" aria-hidden="true"><span class="room-tv"><i></i><i></i><i></i></span><span class="room-laptop"></span><span class="room-phone"></span><span class="room-signal">···</span></div><h3>大屏慢慢逛</h3><p>MacBook 接大屏，看照片，翻网页。</p><button type="button" data-scene="scroll">看滚动演示 ↗</button></article>
+<article><div class="scene-art searching" aria-hidden="true"><span class="room-tv"><b>周末电影</b></span><span class="room-phone">⌨</span><span class="room-signal">···</span></div><h3>想搜就搜</h3><p>熟悉的手机输入法，文字送到 Mac。</p><button type="button" data-scene="type">看输入演示 ↗</button></article>
 </div></section>
+<section id="features" class="wrap section compact-features">
+<div><p class="eyebrow">用起来轻，习惯留下来</p><h2>连上，就是你的手感。</h2></div>
+<div class="utility-grid"><article><span aria-hidden="true">◉</span><h3>设置保存在 Mac</h3><p>速度、方向、常亮；下次连接自动同步。</p></article><article><span aria-hidden="true">☼</span><h3>常亮手动开关</h3><p>前台尝试保活，状态在设置中查看。</p></article><article><span aria-hidden="true">⌘</span><h3>轻量菜单栏 App</h3><p>支持多设备、登录启动，无需云账户。</p></article></div>
+</section>
 <section id="start" class="section tinted"><div class="wrap">
 <p class="eyebrow">安装与连接</p><h2>三步，把手机连到 Mac。</h2>
 <ol class="start-steps">
-<li><span class="step-number" aria-hidden="true">1</span><div><h3>安装并打开 SofaPad</h3><p>下载 <code>SofaPad-0.9.10.pkg</code>，双击安装到「应用程序」，然后打开 SofaPad。它没有主窗口，菜单栏出现小图标就代表正在运行。</p><p class="hint">先退出旧版再安装。更新后刷新手机页面即可；也可下载 ZIP，解压后把 App 拖进「应用程序」。</p></div></li>
-<li><span class="step-number" aria-hidden="true">2</span><div><h3>在 Mac 授予辅助功能权限</h3><p>点菜单栏图标 →「授予辅助功能权限…」，到「系统设置 → 隐私与安全性 → 辅助功能」打开 SofaPad。首次授权与登录解锁需要在 Mac 上完成。</p></div></li>
-<li><span class="step-number" aria-hidden="true">3</span><div><h3>手机浏览器打开菜单中的地址</h3><p>手机与 Mac 接入同一局域网，打开菜单显示的 <code>http://&lt;Mac 名&gt;.local:9876/</code> 或 IP 地址。服务随 App 自动启动，连上后即可使用整屏触控板。</p><p class="hint">Mac 接网线、手机连 Wi-Fi 也可以，只要互通。Safari 可通过「分享 → 添加到主屏幕」获得更完整的可用屏幕。</p></div></li>
-</ol>
+<li><span class="step-number" aria-hidden="true">1</span><div><h3>Mac 安装并打开</h3><p>下载 PKG 安装包；打开后，菜单栏出现 SofaPad。</p></div></li>
+<li><span class="step-number" aria-hidden="true">2</span><div><h3>授予辅助功能权限</h3><p>菜单栏 →「授予辅助功能权限…」，在系统设置中开启。</p></div></li>
+<li><span class="step-number" aria-hidden="true">3</span><div><h3>手机打开地址</h3><p>连接同一局域网，浏览器打开 Mac 菜单中的 .local 或 IP 地址。</p></div></li>
+</ol><p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">完整安装与排障教程 →</a></p>
 <p class="section-note">Mac 需保持已登录、解锁、唤醒；手机使用现代浏览器。当前安装包仅提供 Apple Silicon，Intel 用户需自行构建。</p>
 </div></section>
-<section id="gestures" class="wrap section">
+<section class="wrap section guide-section"><details class="usage-guide"><summary>查看完整手势、输入和设置指南 <span>展开阅读 ↓</span></summary><div class="guide-content"><section id="gestures" class="guide-block">
 <p class="eyebrow">触控操作</p><h2>看着大屏，手指这样操作。</h2>
 <div class="table-scroll"><table>
 <thead><tr><th scope="col">手机上的动作</th><th scope="col">Mac 上的效果</th></tr></thead>
@@ -82,23 +104,23 @@
 </tbody></table></div>
 <div class="tips"><p><strong>边缘不用贴得很准。</strong> 最外侧 28 px 落指即滚动，往内的渐隐判定带合计 76 px，纵向起手也会滚动；判定带内横向起手仍是移动指针。手势开始后锁定，不因跨区改变。</p><p><strong>单指拖动先稍停。</strong> 第二次按下后静置约 150 ms 再移动，避免连续滑动时误触拖动。拖动过程中抬手即结束。</p></div>
 </section>
-<section id="typing" class="wrap section split">
+<section id="typing" class="guide-block">
 <div><p class="eyebrow">文字输入</p><h2>中文搜索，用你熟悉的键盘。</h2>
 <ol class="plain-steps"><li>先用触控板点击 Mac 上要输入的位置。</li><li>轻点手机右上角键盘图标，原生键盘呼出，顶部输入条淡入。</li><li>用手机输入法选词；提交后的文字直接出现在 Mac 光标处，手机输入框随即清空。</li><li>轻点右上角箭头、从箭头向下滑，或轻点空白触控区收起；这次收起操作不会变成鼠标点击。</li></ol>
 <div class="tips"><p><strong>退格与回车：</strong> 手机键盘的删除键发送 Backspace；回车发送真正的 Return。换行、确认还是提交，由 Mac 当前应用决定。拼音候选纠错保留在手机。</p><p><strong>语音听写：</strong> 使用手机键盘自带的听写，停顿约 1.2 秒或结束听写后发送，尚未提交的识别修正不影响已发送内容。</p><p><strong>顶部保持稳定：</strong> 输入条与收起按钮只淡入淡出，不随键盘高度上下移动。SofaPad 不读取 Mac 原有文字，也不会自动寻找输入框；断线的输入不自动重发。</p></div>
 </div>
-<figure class="detail-device"><img src="images/phone-input.png" width="393" height="852" loading="lazy" alt="输入条固定在手机页面顶部，右上角是收起键盘箭头"><figcaption>截图来自浏览器演示，未展示手机系统键盘。</figcaption></figure>
+
 </section>
-<section id="settings" class="wrap section split settings-section">
-<figure class="detail-device"><img src="images/phone-settings.png" width="393" height="852" loading="lazy" alt="设置面板包含屏幕常亮、指针与拖动速度、滚动速度、自然滚动和恢复默认设置"><figcaption>连接时读取 Mac 设置；截图为浏览器演示。</figcaption></figure>
+<section id="settings" class="guide-block">
+
 <div><p class="eyebrow">手感与常亮</p><h2>调一次，下一次连接还是你的习惯。</h2>
 <p>触控板左上角打开设置，修改后保存在 Mac，所有连接的手机共用。</p>
 <dl class="settings-list"><div><dt>指针与拖动速度</dt><dd>默认 1.5×，可调 0.2–5.0×。滑块往左更细，往右更快。</dd></div><div><dt>滚动速度</dt><dd>默认 0.3×，可调 0.05–5.0×；双指与侧边使用同一设置，并共用较慢的基础速度。</dd></div><div><dt>自然滚动</dt><dd>开启时内容跟随手指方向移动；关闭则反向。</dd></div><div><dt>屏幕常亮</dt><dd>默认开启，可手动关闭。系统常亮或兼容保活是否成功可在面板里查看；低电量模式、浏览器策略和媒体中断仍可能导致自动熄屏。</dd></div><div><dt>恢复默认</dt><dd>一次恢复四项设置，并同步到其他在线设备。</dd></div></dl>
 <p class="hint">常亮只在页面前台运行，不阻止手动锁屏。兼容保活显示“运行中”不代表系统保证常亮，请按手机自动锁屏时长实测。</p>
 </div></section>
-<section id="faq" class="section tinted"><div class="wrap faq-wrap">
+</div></details></section><section id="faq" class="section tinted"><div class="wrap faq-wrap">
 <p class="eyebrow">常见问题</p><h2>开始使用前，你可能想知道。</h2>
-<details open><summary>需要在手机上安装 App 吗？</summary><p>不需要。网页随 Mac App 提供，手机浏览器打开 Mac 菜单里的局域网地址即可。这个介绍网站用于了解产品和下载，不是遥控入口。</p></details>
+<details><summary>需要在手机上安装 App 吗？</summary><p>不需要。网页随 Mac App 提供，手机浏览器打开 Mac 菜单里的局域网地址即可。这个介绍网站用于了解产品和下载，不是遥控入口。</p></details>
 <details><summary>手机打不开地址怎么办？</summary><p>确认 SofaPad 正在运行、Mac 已唤醒、服务已开启，两台设备在同一局域网。不要使用开启客户端隔离的访客 Wi-Fi；如果 .local 地址不可用，改用菜单里的 IP 地址，并检查 Mac 防火墙是否允许 SofaPad 接入。</p></details>
 <details><summary>能看到触控板，但 Mac 指针不动？</summary><p>检查 Mac「系统设置 → 隐私与安全性 → 辅助功能」中的 SofaPad 开关。更新后若授权失效，可移除旧条目，重新授权并重启 SofaPad。也要确认 Mac 没有锁屏或睡眠。</p></details>
 <details><summary>安装时提示无法验证开发者，怎么处理？</summary><p>当前开发预览使用本机 ad hoc 签名，安装包未签 Developer ID、也未公证。仅从本仓库 Release 下载，按 macOS 提示到「系统设置 → 隐私与安全性」允许打开。如果系统仍阻止，可参考安装教程中的 ZIP 安装方案；不要关闭整个系统安全保护。</p></details>
@@ -107,7 +129,7 @@
 <details><summary>可以同时用几台手机？</summary><p>支持多个浏览器同时连接，不限制为单台控制器；服务有 48 个连接的资源上限。每台设备独立会话，同时发生的指针手势由先开始的一方优先处理。Mac 菜单可单独断开设备或断开全部。</p></details>
 <details><summary>为什么开了常亮仍然会熄屏？</summary><p>标准常亮机制受浏览器支持与安全上下文限制，局域网 HTTP 通常会使用无声视频兼容方案，需要首次轻触激活。低电量或浏览器策略可能阻止保活；查看设置状态、轻触重试，并在实际手机上等待验证。</p></details>
 <details><summary>如何更新和卸载？</summary><p>更新：先退出旧 App，安装新版，再刷新手机页面。卸载：退出 SofaPad，把应用移到废纸篓，并按需移除登录项与辅助功能条目。没有自动更新或后台云服务。</p></details>
-<details><summary>已经验证了哪些能力？</summary><p>0.9.10 的 129 项自动测试和桌面 Chromium 回归通过，覆盖手势、输入、设置同步与本机 HTTP/WS。截图来自演示后端，不会操作真实 Mac 输入。iPhone 系统键盘、三指抢占、真实 Mac 输入和常亮兼容性仍需要目标设备验证。</p></details>
+<details><summary>已经验证了哪些能力？</summary><p>0.9.10 的 129 项自动测试和桌面 Chromium 回归通过，覆盖手势、输入、设置同步与本机 HTTP/WS。本页动画为模拟示意，不会操作真实 Mac 输入。iPhone 系统键盘、三指抢占、真实 Mac 输入和常亮兼容性仍需要目标设备验证。</p></details>
 <p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">查看完整安装与排障教程 →</a></p>
 </div></section>
 <section id="download" class="wrap section download-section">
@@ -119,5 +141,6 @@
 </section>
 </main>
 <footer><div class="wrap"><p><strong>SofaPad</strong> · 为客厅里的 Mac 而做。</p><p><a href="https://github.com/keyzhao0118/sofapad">GitHub 仓库</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">安装教程</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/product-blueprint.md">产品文档</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/validation.md">验证记录</a> · <a href="https://github.com/keyzhao0118/sofapad/releases">全部版本</a></p><p class="muted">MIT 许可 · © 2026 Key（keyzhao0118）· 本页无追踪脚本或外部字体。</p></div></footer>
+<script type="module" src="demo.js"></script>
 </body>
 </html>
