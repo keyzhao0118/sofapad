@@ -8,6 +8,7 @@
 | [decisions.md](decisions.md) | 可行性判断、冲突处理和代码对应关系 |
 | [installation.md](installation.md) | **安装与使用教程**：安装、授权、连接、手势、输入、设置、排障、更新与卸载，附构建／测试／打包 |
 | [协议 v2](../Protocol/README.md) | 消息格式、去重和状态约束 |
+| [windows-porting.md](windows-porting.md) | **Windows 移植参考**：代码复用、技术方案、协议与输入适配、开发步骤和验收；Windows 版尚未实现 |
 | [keyboard-interaction.md](keyboard-interaction.md) | 单手键盘入口、动效设计与本轮截图审查 |
 | [validation.md](validation.md) | 实际测试结果与真机待测项 |
 | [roadmap.md](roadmap.md) | 从未完成项继续的开发安排 |

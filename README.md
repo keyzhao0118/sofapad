@@ -50,6 +50,7 @@
 - [统一产品文档](docs/product-blueprint.md)：产品范围、交互、边界与验收标准。
 - [能力评估与调整](docs/decisions.md)：冲突处理与实现映射。
 - [协议 v2](Protocol/README.md)：消息格式、去重与状态约束。
+- [Windows 移植参考](docs/windows-porting.md)：供 Windows 电脑继续开发的架构、协议、输入适配与验收清单；Windows 版尚未实现。
 - [验证记录](docs/validation.md) · [后续任务](docs/roadmap.md) · [文档索引与历史](docs/README.md)。
 
 - [发布与 Pages 维护](docs/releasing.md)：标签、安装包校验、Release 和宣传页部署。
