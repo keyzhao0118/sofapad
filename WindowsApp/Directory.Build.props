@@ -8,5 +8,6 @@
     <Authors>Key (keyzhao0118)</Authors>
     <Copyright>Copyright © 2026 Key</Copyright>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 </Project>
