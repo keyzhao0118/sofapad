@@ -18,6 +18,7 @@
     <Content Include="../../../Web/dist/*" Link="Web/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../Web/vendor/NoSleep-LICENSE.txt" Link="Licenses/NoSleep-MIT.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../installer/ChineseSimplified-LICENSE.txt" Link="Licenses/Inno-Chinese-MIT.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../docs/third-party-notices.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../docs/windows-installation.md" Link="使用说明.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

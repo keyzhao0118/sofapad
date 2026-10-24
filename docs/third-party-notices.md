@@ -20,6 +20,8 @@ Windows 0.10.0 使用 .NET 10、Windows Forms、ASP.NET Core / Kestrel 和 Windo
 
 安装程序使用 [Inno Setup 6](https://jrsoftware.org/isinfo.php) 构建；编译器仅用于开发，不随应用分发。Windows 也保留 NoSleep 媒体许可和 SofaPad MIT 许可，不包含 SwiftNIO 运行库。
 
+中文安装语言来自 [kira-96/Inno-Setup-Chinese-Simplified-Translation](https://github.com/kira-96/Inno-Setup-Chinese-Simplified-Translation)，MIT，固定提交与校验见 `WindowsApp/installer/README.md`；许可在 `Licenses/Inno-Chinese-MIT.txt`。
+
 ## 网页保活素材
 
 - NoSleep.js 0.12.0（Rich Tibbett，MIT）：仅复用 `src/media.js` 中的无声 MP4，来源为 npm 固定版本 `nosleep.js@0.12.0`，嵌入 `Web/src/wake-media.ts`。亮屏生命周期代码由 SofaPad 自行实现，不引入上游运行时代码。

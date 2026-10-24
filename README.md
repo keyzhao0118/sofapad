@@ -6,7 +6,7 @@
 
 **[中文产品介绍与使用方法](https://keyzhao0118.github.io/sofapad/)** · **[下载 0.9.10 安装包](https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10.pkg)** · [版本说明与 ZIP](https://github.com/keyzhao0118/sofapad/releases/tag/v0.9.10)
 
-> 当前源码 **0.10.0** · Windows 11 x64 / macOS 13+ · Windows 自包含安装器和 ZIP 由 `scripts/package-windows.ps1` 生成。Windows 原生输入验证尚未通过，属于开发预览；[验证记录与待验收项](docs/windows-validation.md)。已发布的 Mac 0.9.10 下载链接继续保留。
+> 当前源码 **0.10.0** · Windows 11 x64 / macOS 13+ · Windows 自包含安装器和 ZIP 由 `scripts/package-windows.ps1` 生成。Windows 自动化及隔离窗口原生输入验证通过，手机与多屏验收仍待完成，属于开发预览；[验证记录与待验收项](docs/windows-validation.md)。已发布的 Mac 0.9.10 下载链接继续保留。
 
 ![手机上的整屏触控板](docs/images/phone-trackpad.png)
 
