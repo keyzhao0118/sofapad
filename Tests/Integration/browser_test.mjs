@@ -14,7 +14,7 @@ const directory = await mkdtemp(join(tmpdir(), 'sofapad-browser-'));
 const infoFile = join(directory, 'server.json');
 const probe = net.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
 const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
-const server = spawn(join(root, '.build/debug/SofaPad'), ['--preview-server', '--port', String(port), '--web-root', join(root, 'Web/dist'), '--info-file', infoFile], { stdio: ['ignore', 'ignore', 'inherit'] });
+const server = spawn(process.env.SOFAPAD_BINARY || join(root, '.build/debug/SofaPad'), ['--preview-server', '--port', String(port), '--web-root', join(root, 'Web/dist'), '--info-file', infoFile], { stdio: ['ignore', 'ignore', 'inherit'] });
 let browser;
 try {
   let info;

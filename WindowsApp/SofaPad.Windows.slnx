@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SofaPad.Core/SofaPad.Core.csproj" />
+    <Project Path="src/SofaPad.Server/SofaPad.Server.csproj" />
+    <Project Path="src/SofaPad.Input.Windows/SofaPad.Input.Windows.csproj" />
+    <Project Path="src/SofaPad.Windows/SofaPad.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SofaPad.Tests/SofaPad.Tests.csproj" />
+    <Project Path="tests/SofaPad.DesktopProbe/SofaPad.DesktopProbe.csproj" />
+  </Folder>
+</Solution>

@@ -19,6 +19,7 @@ public final class ControlState: @unchecked Sendable {
     private var settingsRevision = 0
     private static let settingsKey = "SofaPad.ControlSettings.v1"
     private var gestureOwner: String?
+    private var ignoredGestures: Set<String> = []
     private var connections = 0
     private var suspended = false
     private let pasteEpoch = UUID().uuidString
@@ -50,6 +51,7 @@ public final class ControlState: @unchecked Sendable {
     public func release(id: String) { locked {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions.remove(at: index)
+        ignoredGestures.remove(id)
         // Only the session that owns the pointer may drop a button it is holding.
         if gestureOwner == id || sessions.isEmpty {
             gestureOwner = nil
@@ -58,7 +60,7 @@ public final class ControlState: @unchecked Sendable {
     } }
     public func disconnect(reason: String = "host_disconnect") { locked {
         let callbacks = sessions.map(\.disconnect)
-        sessions.removeAll(); gestureOwner = nil; executor.reset()
+        sessions.removeAll(); gestureOwner = nil; ignoredGestures.removeAll(); executor.reset()
         for callback in callbacks { callback(reason) }
     } }
     public func setSuspended(_ value: Bool) { locked {
@@ -68,7 +70,7 @@ public final class ControlState: @unchecked Sendable {
     public func ready(id: String) -> [String: Any] { locked {
         ["type": "ready", "v": WireProtocol.version, "sessionID": id, "name": name, "pasteEpoch": pasteEpoch,
          "permitted": !suspended && executor.permitted, "doubleClickInterval": executor.doubleClickInterval,
-         "preview": preview, "capabilities": ["backspace", "edit", "enter", "settings"],
+         "preview": preview, "platform": "macos", "capabilities": ["backspace", "edit", "enter", "settings"],
          "settings": settings.dictionary, "settingsRevision": settingsRevision]
     } }
     public func process(_ data: Data, sessionID: String) throws -> InputMessage { try locked {
@@ -83,10 +85,18 @@ public final class ControlState: @unchecked Sendable {
         }
         if ["scroll", "drag"].contains(message.type) {
             let ending = ["end", "cancel"].contains(message.phase ?? "")
-            if ending { if gestureOwner == sessionID { gestureOwner = nil } }
-            else if gestureOwner == nil { gestureOwner = sessionID }
+            if message.phase == "begin" {
+                if gestureOwner != nil || suspended || !executor.permitted { ignoredGestures.insert(sessionID) }
+                else { gestureOwner = sessionID }
+            }
+            if ignoredGestures.contains(sessionID) || gestureOwner != sessionID {
+                if ending { ignoredGestures.remove(sessionID) }
+                return message
+            }
+            if ending { gestureOwner = nil }
         }
         if ["move", "click", "scroll", "drag", "backspace", "enter", "edit"].contains(message.type) {
+            guard gestureOwner == nil || gestureOwner == sessionID else { return message }
             guard !suspended, executor.permitted else { executor.reset(); return message }
             executor.execute(message)
         }
@@ -106,7 +116,8 @@ public final class ControlState: @unchecked Sendable {
             return reply(receipt.hash == hash ? receipt.status : "id_conflict", duplicate: true)
         }
         guard pasteReceipts.count < 1024 else { return reply("limit") }
-        let status = !suspended && executor.permitted ? executor.paste(text) : "permission"
+        let status = !suspended && executor.permitted
+            ? (gestureOwner != nil && gestureOwner != sessionID ? "busy" : executor.paste(text)) : "permission"
         pasteReceipts[id] = (hash, status)
         return reply(status)
     } }

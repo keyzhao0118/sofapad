@@ -14,6 +14,12 @@ Mac 使用 [Apple SwiftNIO](https://github.com/apple/swift-nio) 处理 HTTP／We
 
 系统字体与 SF Symbols 由系统提供。
 
+## Windows 运行时与打包
+
+Windows 0.10.0 使用 .NET 10、Windows Forms、ASP.NET Core / Kestrel 和 Windows 自带的 Win32 API，不引入第三方 NuGet 运行依赖。SDK 锁定于 `WindowsApp/global.json`，各项目包含 `packages.lock.json`。自包含包携带 .NET 运行时，分发时把 Microsoft 的 `LICENSE.txt`、`ThirdPartyNotices.txt` 复制到 `Licenses/dotnet-*`。来源：[dotnet/runtime](https://github.com/dotnet/runtime)、[dotnet/winforms](https://github.com/dotnet/winforms)、[dotnet/aspnetcore](https://github.com/dotnet/aspnetcore)。
+
+安装程序使用 [Inno Setup 6](https://jrsoftware.org/isinfo.php) 构建；编译器仅用于开发，不随应用分发。Windows 也保留 NoSleep 媒体许可和 SofaPad MIT 许可，不包含 SwiftNIO 运行库。
+
 ## 网页保活素材
 
 - NoSleep.js 0.12.0（Rich Tibbett，MIT）：仅复用 `src/media.js` 中的无声 MP4，来源为 npm 固定版本 `nosleep.js@0.12.0`，嵌入 `Web/src/wake-media.ts`。亮屏生命周期代码由 SofaPad 自行实现，不引入上游运行时代码。

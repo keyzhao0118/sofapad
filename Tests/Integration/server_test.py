@@ -44,7 +44,10 @@ class WS:
         if masked: header += mask; payload = bytes(v ^ mask[i % 4] for i, v in enumerate(payload))
         self.socket.sendall(header + payload)
     def receive(self):
-        header = self.reader.read(2)
+        try:
+            header = self.reader.read(2)
+        except ConnectionResetError:
+            return {'type': 'closed'}
         if len(header) != 2: return {'type': 'closed'}
         length = header[1] & 127
         if length == 126: length = struct.unpack('!H', self.reader.read(2))[0]
@@ -71,7 +74,7 @@ class ServerTests(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 0)); cls.port = probe.getsockname()[1]
         cls.origin = f'http://127.0.0.1:{cls.port}'
-        cls.process = subprocess.Popen([str(ROOT / '.build/debug/SofaPad'), '--preview-server', '--port', str(cls.port),
+        cls.process = subprocess.Popen([os.environ.get('SOFAPAD_BINARY', str(ROOT / '.build/debug/SofaPad')), '--preview-server', '--port', str(cls.port),
                                         '--web-root', str(ROOT / 'Web/dist'), '--info-file', str(cls.info_file)], stdout=subprocess.DEVNULL)
         for _ in range(200):
             if cls.info_file.exists(): break
@@ -168,7 +171,7 @@ class ServerTests(unittest.TestCase):
         ws.send('{"type":"hello",', final=False); ws.send('"v":2}', opcode=0)
         self.assertEqual(ws.receive()['type'], 'ready')
     def test_05_shared_protocol_fixtures_over_wire(self):
-        fixtures = json.loads((ROOT / 'Protocol/fixtures/messages.json').read_text())
+        fixtures = json.loads((ROOT / 'Protocol/fixtures/messages.json').read_text(encoding='utf-8'))
         for fixture_index, fixture in enumerate(fixtures):
             with self.subTest(fixture=fixture['name']):
                 ws = self.socket(); session = ws.hello()
@@ -184,7 +187,9 @@ class ServerTests(unittest.TestCase):
                 ws.close()
     def test_06_unmasked_frame_rejected(self):
         ws = self.socket(); ws.send('{"type":"hello","v":2}', masked=False)
-        self.assertEqual(ws.receive()['reason'], 'protocol')
+        result = ws.receive()
+        # ManagedWebSocket may send an RFC close directly before app-level handling.
+        self.assertTrue(result.get('reason') == 'protocol' or result.get('type') == 'closed', result)
     def test_07_heartbeat_timeout_releases_owner(self):
         one = self.socket(); one.hello(); self.assertEqual(one.receive().get('reason'), 'timeout')
         two = self.socket(); two.hello()
@@ -211,6 +216,33 @@ class ServerTests(unittest.TestCase):
         two.send(json.dumps(dict(type='click', v=2, sessionID=second, seq=1, button='left', count=1)))
         two.send(json.dumps(dict(type='ping', v=2, sessionID=second, seq=2, nonce='after-drag')))
         self.assertEqual(two.receive()['type'], 'pong')
+
+    def test_12_binary_and_invalid_utf8_rejected(self):
+        for payload, opcode in [(b'hello', 2), (b'\xff\xfe', 1)]:
+            ws = self.socket(); ws.hello()
+            ws.send(payload, opcode=opcode)
+            self.assertIn(ws.receive()['type'], ['disconnect', 'closed'])
+            ws.close()
+
+    def test_13_excessive_fragments_rejected(self):
+        ws = self.socket(); ws.hello()
+        try:
+            ws.send(' ', final=False)
+            for _ in range(70): ws.send(' ', opcode=0, final=False)
+            ws.send('{}', opcode=0)
+        except (ConnectionResetError, BrokenPipeError):
+            pass  # Early close while the bad fragmented message is still being sent.
+        self.assertIn(ws.receive()['type'], ['disconnect', 'closed'])
+        ws.close()
+
+    def test_14_incomplete_hello_cannot_extend_deadline(self):
+        ws = self.socket()
+        started = time.monotonic()
+        ws.send('{"type":', final=False)
+        result = ws.receive()
+        self.assertIn(result['type'], ['disconnect', 'closed'])
+        self.assertLess(time.monotonic() - started, 5)
+        ws.close()
 
 
 if __name__ == '__main__':

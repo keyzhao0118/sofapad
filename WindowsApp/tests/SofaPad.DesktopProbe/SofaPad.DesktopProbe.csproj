@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SofaPad.Core/SofaPad.Core.csproj" />
+    <ProjectReference Include="../../src/SofaPad.Input.Windows/SofaPad.Input.Windows.csproj" />
+    <ProjectReference Include="../../src/SofaPad.Server/SofaPad.Server.csproj" />
+  </ItemGroup>
+</Project>

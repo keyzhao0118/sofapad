@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "sofapad.core": {
+        "type": "Project"
+      },
+      "sofapad.input.windows": {
+        "type": "Project",
+        "dependencies": {
+          "SofaPad.Core": "[0.10.0, )"
+        }
+      },
+      "sofapad.server": {
+        "type": "Project",
+        "dependencies": {
+          "SofaPad.Core": "[0.10.0, )"
+        }
+      }
+    }
+  }
+}

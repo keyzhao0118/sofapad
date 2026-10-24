@@ -149,7 +149,7 @@ final class HTTPHandler: ChannelInboundHandler, RemovableChannelHandler, @unchec
         if request.method == .GET, request.uri == "/api/status" {
             let snapshot = state.snapshot()
             return json(context, status: .ok, ["name": state.name, "permitted": snapshot.permitted,
-                "controllers": snapshot.controllers.count, "preview": state.preview, "v": WireProtocol.version])
+                "controllers": snapshot.controllers.count, "preview": state.preview, "v": WireProtocol.version, "platform": "macos"])
         }
         json(context, status: .notFound, ["error": "not_found"])
     }

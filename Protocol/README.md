@@ -1,5 +1,17 @@
 # SofaPad protocol v2
 
+## Windows / macOS 扩展（0.10.0）
+
+两端共享本协议与 `Web/`。`GET /api/status` 和 `ready` 可选返回 `platform: "macos" | "windows"`；未返回时网页按旧 Mac 主机处理权限提示。Windows 的 `permitted` 表示可向当前普通桌面投递输入，不保证管理员目标或特定控件接受输入。`doubleClickInterval` 始终以秒为单位。
+
+Windows 设置写入 `%LOCALAPPDATA%\SofaPad\settings.json`，临时文件刷盘后替换。写失败时不更新快照或修订号，返回 `{ "type": "settingsError", "reason": "storage" }`，网页显示保存失败。新消息是服务端可选扩展，v2 既有必填字段保持不变。
+
+所有会话独立验证，系统输入全局串行。首个 scroll/drag begin 获得手势所有权；其他会话的冲突输入被忽略，paste 返回并缓存 busy。被忽略的手势一直忽略到它自身 end/cancel，不在拥有者结束后中途接管。非拥有者的 end/cancel 或断开不能释放拥有者的按键。0.10.0 同时修正 Mac 的仲裁实现。
+
+Windows Kestrel / ManagedWebSocket 限制：应用消息 ≤16,384 UTF-8 字节、≤240 条/秒、每条完整消息 ≤64 次 ReceiveAsync 操作、hello 3 秒、有效应用消息空闲 6 秒、最多 48 个升级连接；另限制 HTTP 连接数、头长度和请求时限。ReceiveAsync 操作不是原始帧计数，不声称与 SwiftNIO 的每秒 480 帧限制等价。未完成分片和原生 ping 不能延长应用时限，二进制与非法 UTF-8 被拒绝。遇到库层协议错误，可能直接关闭 WebSocket 而没有应用级 disconnect 消息。
+
+Windows 鼠标用物理像素和虚拟桌面绝对坐标；每条 click 只投递一次按下/抬起。滚动以每协议像素 1 个 Windows wheel unit 累积余量，横轴反向适配，120 units 为系统一刻度；这是可调实现基线，尚未完成不同应用手感验收。正常文本按 UTF-16 单元通过 KEYEVENTF_UNICODE 输入；Backspace/Enter 分别为 VK_BACK/VK_RETURN，旧 paste 用 Unicode 剪贴板与 Ctrl+V。不同控件对字素簇退格和合成文本的响应可能不同。
+
 协议随 App／网页一起更新，v1 页面需要刷新。产品行为以 [统一文档](../docs/product-blueprint.md) 为准，JSON 结构见 [schema/input-v2.json](schema/input-v2.json)；旧 schema 仅留在 archive/。
 
 HTTP/WS 同一端口（默认 9876），不做配对：`GET /api/status` 返回名称、当前控制者数量、辅助功能权限与协议版本；同源 `/ws` 直接开始控制。服务端精确校验 Host 与 Origin，只接受绑定的地址；每个连接一个独立会话，多台设备可以同时控制（序号按会话各自递增）。局域网内任何设备都能访问，明文传输。
