@@ -1,5 +1,7 @@
 # SofaPad Windows 移植参考
 
+> **0.10.0 实现更新**：本说明现作为移植设计基线保留。Windows 源码、构建与安装入口已加入 `WindowsApp/` 和 `scripts/*-windows.ps1`。当前使用说明见 [Windows 安装](windows-installation.md)，真实测试状态见 [Windows 验证](windows-validation.md)。以下“尚未实现”指本文最初交接时的状态，不代表最新源码状态；未完成的真机验收仍明确保留。
+
 更新日期：2026-10-24。参考应用版本：**0.9.10**；产品基线：[v2.7](product-blueprint.md)；代码核对点：[c0b2638](https://github.com/keyzhao0118/sofapad/tree/c0b2638fe11493fdcbc05c0d964d9a41eb8721fd)。
 
 **本文是供 Windows 电脑继续开发的交接说明，Windows 客户端、项目文件、构建脚本和安装包尚未实现，也未经过 Windows 真机验证。** 文中的新目录、接口和阶段安排均为建议；现有实现以本文链接的源码、协议和产品文档为参照。后续开发应记录实际使用的提交号，并核对基线之后的变更。

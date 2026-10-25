@@ -22,6 +22,25 @@ function setup(t) {
   t.after(() => { client.disconnect(); globalThis.WebSocket = originalSocket; globalThis.location = originalLocation; });
   return { client, sockets, updates, settingsUpdates, cancelled: () => cancellations };
 }
+
+test('Windows permission hints use the host platform; old Mac hosts stay compatible', async t => {
+  const { client, sockets, updates } = setup(t);
+  await client.connect();
+  sockets[0].receive({ type: 'ready', v: 2, sessionID: 'win', platform: 'windows', permitted: false, doubleClickInterval: .5 });
+  assert.match(updates.at(-1).detail, /管理员窗口/);
+  assert.doesNotMatch(updates.at(-1).detail, /辅助功能/);
+  client.disconnect(); await client.connect();
+  sockets[1].receive({ type: 'ready', v: 2, sessionID: 'legacy', permitted: false, doubleClickInterval: .5 });
+  assert.match(updates.at(-1).detail, /Mac.*辅助功能/);
+});
+
+test('settings storage failure reaches the UI without pretending the patch was saved', async t => {
+  const { client, sockets, updates, settingsUpdates } = setup(t);
+  await client.connect(); sockets[0].ready();
+  sockets[0].receive({ type: 'settingsError', reason: 'storage' });
+  assert.equal(updates.at(-1).settingsError, true);
+  assert.equal(settingsUpdates.length, 0);
+});
 test('input is gated by ready and permission, revocation stops it immediately', async t => {
   const { client, sockets, updates } = setup(t);
   const move = { type: 'move', dx: 1, dy: 2 };

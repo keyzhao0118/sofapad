@@ -13,7 +13,7 @@ export function isDictationText(value: string): boolean {
   return /[\s\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(value);
 }
 
-/** Backspace deletes one user-perceived character on the Mac, not one UTF-16 unit. */
+/** Backspace deletes one user-perceived character on the 电脑, not one UTF-16 unit. */
 export function graphemeCount(value: string): number {
   if (!value) return 0;
   const Ctor = (Intl as unknown as { Segmenter?: new (locale?: string, options?: { granularity: string }) => { segment(value: string): Iterable<unknown> } }).Segmenter;
@@ -26,7 +26,7 @@ export function graphemeCount(value: string): number {
   } catch { return [...value].length; }
 }
 
-/** Rewrites only the tail that differs, which is exactly what the Mac cursor needs. */
+/** Rewrites only the tail that differs, which is exactly what the 电脑 cursor needs. */
 export function reconcile(previous: string, next: string): TextEdit | null {
   if (previous === next) return null;
   let common = 0;
@@ -57,12 +57,12 @@ const browserTimers: Timers = {
 
 /** Type-through input: every committed change leaves the field immediately as one edit.
  * The field is only a scratch buffer for the IME and the keyboard; what the user typed
- * lives on the Mac and in the fading stream above the box, never in the box itself. */
+ * lives on the 电脑 and in the fading stream above the box, never in the box itself. */
 export class TransientInput {
   private last = SENTINEL;
   private composedAt = Number.NEGATIVE_INFINITY;
   private dictating = '';      // recognised words still waiting for a pause
-  private flushed = '';        // words already typed on the Mac in this dictation
+  private flushed = '';        // words already typed on the 电脑 in this dictation
   private settle?: number;     // fires when the speaker pauses
   constructor(private field: Field, private send: (action: InputAction) => boolean,
     private announce: (action: InputAction) => void, private now: () => number = () => performance.now(),
@@ -77,7 +77,7 @@ export class TransientInput {
   }
   /** True while recognised words are still waiting on the phone. */
   get pendingDictation(): boolean { return this.dictating !== this.flushed; }
-  /** Field text that has not reached the Mac yet; IME marked text counts as content. */
+  /** Field text that has not reached the 电脑 yet; IME marked text counts as content. */
   pending(): string {
     const value = this.field.value;
     return value.startsWith(SENTINEL) ? value.slice(SENTINEL.length) : value;
@@ -86,7 +86,7 @@ export class TransientInput {
   observe() { this.last = this.field.value; }
   /** Record the field before an event mutates it, so delete decisions see the real state. */
   snapshot() { this.last = this.field.value; }
-  /** The IME just finished; its trailing deletes must not reach the Mac. */
+  /** The IME just finished; its trailing deletes must not reach the 电脑. */
   compositionEnded() { this.composedAt = this.now(); }
   /** One backspace for a delete key pressed on an otherwise empty box, unless the IME is settling. */
   macDelete(): InputAction | null {
@@ -121,7 +121,7 @@ export class TransientInput {
     this.reset();
     if (inputType.startsWith('history')) return null; // Undo/redo must not replay text.
     if (previous === SENTINEL && value.length < SENTINEL.length) {
-      // The box was already empty, so this delete key targets the Mac. Correcting pinyin
+      // The box was already empty, so this delete key targets the 电脑. Correcting pinyin
       // leaves marked text in the field first, and the settling window covers the rest.
       if (this.now() - this.composedAt <= IME_SETTLE_MS) return null;
       return this.emit({ type: 'edit', edit: { delete: 1, text: '' } });
@@ -129,14 +129,14 @@ export class TransientInput {
     if (inputType.startsWith('delete')) return null; // an IME delete never types text
     const pending = value.startsWith(SENTINEL) ? value.slice(SENTINEL.length) : value;
     if (streamed) {
-      // Dictation already reached the Mac: send only a late revision, then let the whole
+      // Dictation already reached the 电脑: send only a late revision, then let the whole
       // phrase drift up as the field clears.
       const edit = reconcile(streamed, pending);
       if (edit) return this.emit({ type: 'edit', edit });
       return pending ? this.emit({ type: 'echo', text: pending }) : null;
     }
     if (!pending) return null;
-    // The return key inserts a line break, but the Mac should see a real Return press.
+    // The return key inserts a line break, but the 电脑 should see a real Return press.
     const lineBreak = inputType === 'insertLineBreak' || inputType === 'insertParagraph' || pending === '\n';
     return this.emit(lineBreak ? { type: 'enter' } : { type: 'edit', edit: { delete: 0, text: pending } });
   }
@@ -149,11 +149,11 @@ export class TransientInput {
 
 export const pasteMessages: Record<PasteOutcome, string> = {
   executed: '粘贴指令已执行', uncertain: '请查看电视确认是否已粘贴',
-  not_sent: '尚未发送，请连接 Mac 后重试', permission: '请在 Mac 上授予辅助功能权限',
-  clipboard_failed: 'Mac 剪贴板写入失败，未执行粘贴', unavailable: '粘贴指令未执行，请在 Mac 上检查权限',
+  not_sent: '尚未发送，请连接电脑 后重试', permission: '请在电脑上检查输入权限与桌面状态',
+  clipboard_failed: '电脑剪贴板写入失败，未执行粘贴', unavailable: '粘贴指令未执行，请在电脑 上检查权限',
   busy: '请等待当前操作完成', too_large: '文字过长，请缩短后重试（不会自动截断）',
-  expired: 'Mac 已重新启动，请确认电视内容后重新发送', id_conflict: '请求编号冲突，未再次执行',
-  limit: '本次服务的文本请求已达上限，请重新启动 Mac 服务进程',
+  expired: '电脑已重新启动，请确认电视内容后重新发送', id_conflict: '请求编号冲突，未再次执行',
+  limit: '本次服务的文本请求已达上限，请重新启动 电脑服务进程',
 };
 
 /** A draft stays in the textarea. IME completion is read on the following task,

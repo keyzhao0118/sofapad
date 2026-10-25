@@ -1,6 +1,6 @@
 # 文档索引
 
-**唯一产品基线：[统一产品文档 v2.7](product-blueprint.md)**。当前开发版本 0.9.10；原始 MVP 稿的版本号 v0.2 与统一文档版本分别记录。
+**唯一产品基线：[统一产品文档 v2.7](product-blueprint.md)**。当前源码开发版本 0.10.0，支持 Windows 与 macOS；原始 MVP 稿的版本号 v0.2 与统一文档版本分别记录。
 
 | 文档 | 职责 |
 | --- | --- |
@@ -8,7 +8,9 @@
 | [decisions.md](decisions.md) | 可行性判断、冲突处理和代码对应关系 |
 | [installation.md](installation.md) | **安装与使用教程**：安装、授权、连接、手势、输入、设置、排障、更新与卸载，附构建／测试／打包 |
 | [协议 v2](../Protocol/README.md) | 消息格式、去重和状态约束 |
-| [windows-porting.md](windows-porting.md) | **Windows 移植参考**：代码复用、技术方案、协议与输入适配、开发步骤和验收；Windows 版尚未实现 |
+| [windows-installation.md](windows-installation.md) | **Windows 安装与使用**：安装程序、托盘、网络、防火墙、升级、卸载与源码构建 |
+| [windows-validation.md](windows-validation.md) | Windows 自动测试、分发验证与尚未完成的真机验收 |
+| [windows-porting.md](windows-porting.md) | 原始 Windows 移植参考与设计基线 |
 | [keyboard-interaction.md](keyboard-interaction.md) | 单手键盘入口、动效设计与本轮截图审查 |
 | [validation.md](validation.md) | 实际测试结果与真机待测项 |
 | [roadmap.md](roadmap.md) | 从未完成项继续的开发安排 |

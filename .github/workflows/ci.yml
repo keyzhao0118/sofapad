@@ -1,0 +1,64 @@
+name: Desktop platforms
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: WindowsApp/global.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and test protocol, input backend, HTTP and WebSocket
+        shell: pwsh
+        run: ./scripts/test-windows.ps1
+      - name: Browser regression against Windows host
+        shell: pwsh
+        run: |
+          npm install --prefix build/browser playwright@1.58.2
+          $env:PLAYWRIGHT_MODULE = ([System.Uri](Join-Path (Get-Location) 'build/browser/node_modules/playwright/index.mjs')).AbsoluteUri
+          $env:CHROME_BINARY = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+          $env:SOFAPAD_BINARY = (Resolve-Path 'WindowsApp/src/SofaPad.Windows/bin/Release/net10.0-windows/SofaPad.exe').Path
+          node Tests/Integration/browser_test.mjs
+      - name: Package self-contained installer and ZIP
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -SkipBuild
+      - name: Install, upgrade and uninstall on the isolated runner
+        shell: pwsh
+        run: ./scripts/test-windows-installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SofaPad-windows-x64
+          path: build/releases/*
+          if-no-files-found: error
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - name: Existing Mac and shared-web regression
+        run: bash scripts/test.sh
+      - name: Build Mac application and validate bundled resources
+        run: bash scripts/build.sh

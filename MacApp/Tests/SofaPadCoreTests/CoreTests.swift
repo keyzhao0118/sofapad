@@ -88,4 +88,33 @@ final class CoreTests: XCTestCase {
         XCTAssertThrowsError(try validator.validate(Data("{\"type\":\"ping\",\"v\":2,\"sessionID\":\"test-session\",\"seq\":241,\"nonce\":\"x\"}".utf8), now: 1))
         XCTAssertThrowsError(try validator.validate(Data(repeating: 32, count: 16_385), now: 2))
     }
+    func testGestureOwnerIgnoresOtherControllersUntilTheirGestureEnds() throws {
+        final class Fake: InputExecutor {
+            var permitted = true; var doubleClickInterval = 0.5; var events = 0; var resets = 0
+            func execute(_ message: InputMessage) { events += 1 }
+            func reset() { resets += 1 }
+        }
+        let fake = Fake(), state = ControlState(executor: fake, name: "Test")
+        let a = state.acquire(label: "A", disconnect: { _ in }), b = state.acquire(label: "B", disconnect: { _ in })
+        func send(_ id: String, _ seq: Int, _ type: String, _ phase: String? = nil) throws {
+            var value: [String: Any] = ["v": 2, "sessionID": id, "seq": seq, "type": type, "dx": 0, "dy": 0]
+            if let phase { value["phase"] = phase }
+            if type == "click" { value["button"] = "left"; value["count"] = 1 }
+            _ = try state.process(JSONSerialization.data(withJSONObject: value), sessionID: id)
+        }
+        try send(a, 1, "drag", "begin")
+        try send(b, 1, "click")
+        try send(b, 2, "drag", "begin")
+        XCTAssertEqual(fake.events, 1)
+        try send(a, 2, "drag", "end")
+        try send(b, 3, "drag", "update")
+        try send(b, 4, "drag", "end")
+        XCTAssertEqual(fake.events, 2)
+        try send(a, 3, "drag", "begin")
+        let resets = fake.resets
+        state.release(id: b)
+        XCTAssertEqual(fake.resets, resets)
+        state.release(id: a)
+        XCTAssertGreaterThan(fake.resets, resets)
+    }
 }

@@ -35,7 +35,7 @@ const awake = createKeepAwake(state => {
   };
   element('awake-status').textContent = messages[state];
 });
-awake.setEnabled(false); // Wait for the Mac's preference before starting playback.
+awake.setEnabled(false); // Wait for the 电脑's preference before starting playback.
 const defaults: RemoteSettings = { pointer: speedRanges.pointer.middle, scroll: speedRanges.scroll.middle, natural: true, keepAwake: true };
 // Apply to saved multipliers too, so existing users receive the slower baseline.
 const scrollBaseScale = 0.4;
@@ -83,7 +83,7 @@ function saveSettings(patch: Partial<RemoteSettings>) {
   settings = { ...settings, ...patch };
   awake.setEnabled(settings.keepAwake);
   if (patch.keepAwake === true) awake.resume(true); // Still in the trusted toggle/reset event.
-  element('settings-status').textContent = '正在保存到 Mac…';
+  element('settings-status').textContent = '正在保存到电脑…';
   renderSettings();
 }
 for (const [input, key] of [[pointerSpeed, 'pointer'], [scrollSpeed, 'scroll']] as const) {
@@ -164,10 +164,10 @@ function announceEdit(edit: TextEdit) {
 function renderDictationState() {
   const dictating = client.canEdit && transient.pendingDictation;
   document.body.dataset.dictating = String(dictating);
-  // An old Mac app cannot receive a real Return, so say so instead of failing quietly.
+  // An old 电脑 app cannot receive a real Return, so say so instead of failing quietly.
   element('sync-hint').textContent = dictating ? '正在聆听…停顿一下就会发送'
-    : client.canEnter ? '输入会实时同步到 Mac 光标处'
-    : '输入会实时同步（更新 Mac App 后回车可发送 Return）';
+    : client.canEnter ? '输入会实时同步到电脑光标处'
+    : '输入会实时同步（更新 电脑端 App 后回车可发送 Return）';
 }
 // Live typing turns the field into a scratch buffer; older hosts keep the manual controls.
 const draftPlaceholder = draft.placeholder;
@@ -189,7 +189,8 @@ function renderInputState() {
 const client = new ConnectionClient(update => {
   for (const control of [pointerSpeed, scrollSpeed, natural, keepAwake, element<HTMLButtonElement>('reset')]) control.disabled = !client.canSaveSettings;
   if (!client.canSaveSettings) element('settings-status').textContent = ['connecting', 'offline', 'paused'].includes(update.state)
-    ? '连接后自动读取 Mac 设置' : '请更新 Mac App 以同步设置';
+    ? '连接后自动读取 电脑设置' : '请更新 电脑端 App 以同步设置';
+  if (update.settingsError) element('settings-status').textContent = '保存失败，请检查电脑的磁盘空间与设置目录权限。';
   document.body.dataset.state = update.state;
   for (const target of touchTargets) target.setAttribute('aria-disabled', String(update.state !== 'connected'));
   element('connection-notice').hidden = update.state === 'connected';
@@ -198,14 +199,14 @@ const client = new ConnectionClient(update => {
   if (update.name) document.title = `${update.name} · SofaPad`;
   if (update.doubleClickMs) gesture.doubleClickMs = update.doubleClickMs;
   if (update.preview !== undefined) element('preview').hidden = !update.preview;
-  // A fresh session cannot know the Mac field, so start from an empty scratch buffer.
+  // A fresh session cannot know the 电脑 field, so start from an empty scratch buffer.
   if (update.state === 'connected' && !composing) transient.reset();
   renderInputState();
 }, cancelGesture, remote => {
   settings = remote;
   awake.setEnabled(settings.keepAwake);
   renderSettings();
-  element('settings-status').textContent = '已保存到 Mac · 所有手机共用';
+  element('settings-status').textContent = '已保存到电脑 · 所有手机共用';
 });
 const transient = new TransientInput(draft, sendInput, announceInput);
 const submission = new TextSubmission(() => draft.value, text => client.paste(text), message => {

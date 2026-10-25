@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
+    <AssemblyName>SofaPad</AssemblyName>
+    <Product>SofaPad</Product>
+    <Description>用手机控制 Windows 和 Mac</Description>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SofaPad.Core/SofaPad.Core.csproj" />
+    <ProjectReference Include="../SofaPad.Server/SofaPad.Server.csproj" />
+    <ProjectReference Include="../SofaPad.Input.Windows/SofaPad.Input.Windows.csproj" />
+    <EmbeddedResource Include="AppIcon.ico" LogicalName="SofaPad.AppIcon.ico" />
+    <Content Include="../../../Web/dist/*" Link="Web/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../Web/vendor/NoSleep-LICENSE.txt" Link="Licenses/NoSleep-MIT.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../installer/ChineseSimplified-LICENSE.txt" Link="Licenses/Inno-Chinese-MIT.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../docs/third-party-notices.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../docs/windows-installation.md" Link="使用说明.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="CheckWebAssets" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('../../../Web/dist/app.js')" Text="先执行 pnpm --dir Web build，或使用 scripts/build-windows.ps1。" />
+  </Target>
+</Project>

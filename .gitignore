@@ -27,3 +27,10 @@ coverage/
 .vscode/
 build/
 __pycache__/
+
+# Windows / .NET local output
+bin/
+obj/
+.vs/
+TestResults/
+*.user

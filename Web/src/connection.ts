@@ -2,17 +2,18 @@ import type { Action } from './gesture.js';
 import { readSettings, type RemoteSettings } from './remote-settings.js';
 
 export type ConnectionState = 'connecting' | 'connected' | 'permission' | 'paused' | 'offline' | 'error';
-type Update = { state: ConnectionState; detail: string; name?: string; rtt?: number; doubleClickMs?: number; preview?: boolean };
+type Update = { state: ConnectionState; detail: string; name?: string; rtt?: number; doubleClickMs?: number; preview?: boolean; settingsError?: boolean };
 export type PasteOutcome = 'executed' | 'uncertain' | 'not_sent' | 'permission' | 'clipboard_failed' | 'unavailable' | 'busy' | 'too_large' | 'expired' | 'id_conflict' | 'limit';
 /** Server limits for one live edit message. */
 const maxEditDelete = 128;
 const maxEditBytes = 512;
 const reasons: Record<string, string> = {
-  host_disconnect: 'Mac 已主动断开。需要时点击重新连接。',
-  host_paused: 'Mac 已锁屏或进入睡眠。解锁后点击重新连接。',
-  host_stopped: 'Mac 已关闭控制服务。开启后点击重新连接。',
-  version: '页面版本与 Mac 不一致，请刷新页面。',
+  host_disconnect: '电脑已主动断开。需要时点击重新连接。',
+  host_paused: '电脑已锁屏或进入睡眠。解锁后自动重新连接。',
+  host_stopped: '电脑已关闭控制服务。开启后自动重新连接。',
+  version: '页面版本与电脑不一致，请刷新页面。',
   protocol: '连接数据异常，已停止控制。请刷新后重试。',
+  input_failed: '电脑未能投递输入。请回到普通桌面或普通权限窗口后重新连接。',
 };
 
 export class ConnectionClient {
@@ -35,7 +36,9 @@ export class ConnectionClient {
   private supportsEnter = false;
   private supportsSettings = false;
   private settingsRevision = -1;
-  private name = '你的 Mac';
+  private name = '你的电脑';
+  private platform: 'windows' | 'macos' = 'macos';
+  get permissionHint() { return this.platform === 'windows' ? '请解锁电脑并回到普通桌面；管理员窗口与 UAC 不能远程控制。' : '请在 Mac 上授予 SofaPad 辅助功能权限。'; }
   private pasteEpoch?: string;
   private pendingPaste?: { id: string; sent: boolean; resolve: (result: PasteOutcome) => void; timer: ReturnType<typeof setTimeout> };
   constructor(private update: (update: Update) => void, private cancelGesture: () => void,
@@ -88,7 +91,7 @@ export class ConnectionClient {
     if (this.hidden) return;
     this.manual = false; this.clear();
     const generation = this.generation;
-    this.update({ state: 'connecting', detail: '正在连接 Mac…' });
+    this.update({ state: 'connecting', detail: '正在连接电脑…' });
     const abort = new AbortController(), timeout = setTimeout(() => abort.abort(), 4000);
     try {
       const response = await fetch('/api/status', { cache: 'no-store', signal: abort.signal });
@@ -96,6 +99,7 @@ export class ConnectionClient {
       const status = await response.json();
       if (generation !== this.generation) return;
       this.name = status.name;
+      this.platform = status.platform === 'windows' ? 'windows' : 'macos';
       this.update({ state: 'connecting', detail: '正在建立控制连接…', name: this.name, preview: status.preview });
       const socket = new WebSocket(`ws://${location.host}/ws`);
       this.socket = socket;
@@ -149,6 +153,7 @@ export class ConnectionClient {
     let message;
     try { message = JSON.parse(raw); } catch { this.fail(); return; }
     if (message.type === 'ready' && message.v === 2 && typeof message.sessionID === 'string') {
+      if (message.platform === 'windows' || message.platform === 'macos') this.platform = message.platform;
       this.ready = true; this.sessionID = message.sessionID; this.seq = 0; this.attempt = 0;
       this.supportsBackspace = Array.isArray(message.capabilities) && message.capabilities.includes('backspace');
       this.supportsEdit = Array.isArray(message.capabilities) && message.capabilities.includes('edit');
@@ -158,7 +163,7 @@ export class ConnectionClient {
       this.pasteEpoch = message.pasteEpoch;
       this.lastPong = performance.now(); clearTimeout(this.deadline);
       this.setPermission(message.permitted === true);
-      this.update({ state: this.permitted ? 'connected' : 'permission', detail: this.permitted ? '可以开始操作' : '请在 Mac 上授予 SofaPad 辅助功能权限。',
+      this.update({ state: this.permitted ? 'connected' : 'permission', detail: this.permitted ? '可以开始操作' : this.permissionHint,
         name: message.name, doubleClickMs: Math.min(2000, Math.max(100, message.doubleClickInterval * 1000)), preview: message.preview });
       this.heartbeat = setInterval(() => {
         if (performance.now() - this.lastPong > 6000) { this.fail(); return; }
@@ -166,11 +171,13 @@ export class ConnectionClient {
         this.transmit({ type: 'ping', nonce });
       }, 2000);
     } else if (message.type === 'settings') { this.receiveSettings(message);
+    } else if (message.type === 'settingsError') {
+      this.update({ state: this.permitted ? 'connected' : 'permission', detail: this.permitted ? '可以开始操作' : this.permissionHint, settingsError: true });
     } else if (message.type === 'pong') {
       const began = this.pings.get(message.nonce);
       if (began !== undefined) {
         this.lastPong = performance.now(); this.pings.clear();
-        this.update({ state: this.permitted ? 'connected' : 'permission', detail: this.permitted ? '可以开始操作' : '请在 Mac 上授予辅助功能权限。', rtt: Math.round(performance.now() - began) });
+        this.update({ state: this.permitted ? 'connected' : 'permission', detail: this.permitted ? '可以开始操作' : this.permissionHint, rtt: Math.round(performance.now() - began) });
       }
     } else if (message.type === 'pasteResult' && message.requestID === this.pendingPaste?.id) {
       const statuses: PasteOutcome[] = ['executed', 'permission', 'clipboard_failed', 'unavailable', 'busy', 'expired', 'id_conflict', 'limit'];
@@ -188,7 +195,7 @@ export class ConnectionClient {
   private setPermission(value: boolean) {
     if (!value) this.cancelGesture();
     this.permitted = value;
-    this.update({ state: value ? 'connected' : 'permission', detail: value ? '可以开始操作' : '请在 Mac 上授予 SofaPad 辅助功能权限。' });
+    this.update({ state: value ? 'connected' : 'permission', detail: value ? '可以开始操作' : this.permissionHint });
   }
   disconnect() {
     this.transmit({ type: 'disconnect' }); this.manual = true; this.clear();
@@ -212,7 +219,7 @@ export class ConnectionClient {
   private fail() {
     this.clear();
     if (this.hidden || this.manual) return;
-    this.update({ state: 'offline', detail: '连接中断。请确认 Mac 已唤醒，手机与 Mac 在同一网络。' });
+    this.update({ state: 'offline', detail: '连接中断。请确认电脑已唤醒，手机与电脑在同一网络。' });
     const delay = Math.min(10_000, 1000 * 2 ** Math.min(this.attempt++, 4)) + Math.random() * 300;
     this.retry = setTimeout(() => { void this.connect(); }, delay);
   }
