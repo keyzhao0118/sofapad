@@ -2,15 +2,21 @@
 
 Windows 开发预览 0.10.0，适用于 Windows 11 x64 的普通、已解锁桌面。
 
+**[下载 Windows 安装包 EXE](https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64-setup.exe)** · [备用便携 ZIP](https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64.zip) · [发布说明与校验文件](https://github.com/keyzhao0118/sofapad/releases/tag/v0.10.0)。Mac 用户请看 [Mac 教程](macos-installation.md)。
+
 ## 安装
 
 双击 `SofaPad-0.10.0-windows-x64-setup.exe`，按安装向导完成。安装需要管理员授权，以便写入 Program Files 并添加防火墙规则；SofaPad 本身以普通用户权限运行。无需另外安装 .NET、Node.js 或 Python。安装程序尚未代码签名，Windows 可能显示未知发布者，请先核对下载来源与 SHA-256。
 
 打开开始菜单里的 SofaPad。程序没有常驻主窗口，图标位于任务栏通知区域（可能在向上箭头展开的区域）。双击图标可查看连接说明；右键菜单可以复制地址、开关服务、选择网卡、断开设备和设置登录启动。
 
+如果 Windows 显示“Windows 已保护你的电脑”，请先确认文件来自上述 GitHub Release，再查看“更多信息”中的“仍要运行”（如系统提供）。单位电脑的策略限制请联系管理员；不要关闭整个防火墙或系统保护。
+
 1. 手机和电脑连接同一个家庭 Wi-Fi。
 2. 将 Windows 当前家庭网络配置设为“专用网络”。安装程序只允许专用网络、同一子网连接本应用的 TCP 9876 端口。
 3. 在手机浏览器输入托盘显示的 `http://192.168.x.x:9876/` 地址，进入触控板。
+
+请使用自己电脑显示的实际地址，不要照抄示例，也不要把 GitHub Pages 当作控制入口。看到“可以开始操作”后滑动一下，电脑指针随之移动就表示连接成功。随后先点中电脑输入框，再打开手机右上角键盘输入中文。
 
 ZIP 是便携版，必须解压整个文件夹再打开 SofaPad.exe。便携版不自动创建防火墙规则，推荐日常使用安装版。
 

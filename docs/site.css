@@ -15,3 +15,36 @@
 @media(max-width:620px){.wrap{width:calc(100% - 32px)}.nav{flex-wrap:wrap;gap:6px;padding:12px 0}.nav-links{width:100%;justify-content:space-between;gap:8px;font-size:12px}.nav-links .nav-download{padding:6px 15px}.hero{padding:30px 0 24px}h1{font-size:30px;max-width:12em;margin:auto}.tagline{font-size:14px;margin:14px 0 20px}.hero-copy .eyebrow{font-size:10px}.note{font-size:10px}.button{padding:10px 15px;font-size:13px;min-height:44px}.demo{margin-top:26px;border-radius:20px}.demo-caption{font-size:12px;padding:8px 12px 20px}.demo-stage{grid-template-columns:minmax(0,1fr) 102px;gap:20px;padding:26px 18px 10px;min-height:240px;align-items:center}.demo-computer svg{width:100%}.three{grid-template-columns:1fr}.section{padding-top:42px}.scenario-cards{gap:12px}.scenario-cards article{display:grid;grid-template-columns:106px 1fr;column-gap:16px;padding:16px;align-items:start}.scene-art{grid-row:1/3;width:106px;height:114px;margin:0;border-radius:10px;border:0}.scenario-cards h3{margin:0 0 6px;font-size:16px}.scenario-cards p{font-size:12px}.room-tv{width:72px;height:44px;left:17px;top:11px;border-width:3px;font-size:15px}.room-console{left:13px;top:58px;width:80px;height:4px}.room-console:after{right:10px;bottom:6px;width:9px;height:4px}.room-sofa{left:21px;bottom:0;width:63px;height:27px;border-width:5px;border-radius:10px 10px 0 0}.room-phone{right:9px;bottom:12px;width:14px;height:25px;border-width:1.5px;border-radius:3px}.room-phone:after{left:3px;top:13px;width:5px;height:5px}.room-signal{right:5px;top:53px;font-size:16px}.reading .room-tv{padding:6px;gap:4px}.reading .room-tv i{height:27px}.room-laptop{left:19px;bottom:11px;width:47px;height:28px;border-width:3px}.room-laptop:after{left:-7px;bottom:-6px;width:58px;height:3px}.room-tv b{font-size:7px;padding:2px 3px}.searching .room-phone{width:21px;height:35px;bottom:9px;font-size:10px;line-height:19px}.searching .room-phone:after{top:22px}.utility-grid{gap:14px}.utility-grid h3{font-size:12px}.utility-grid p{font-size:11px}.compact-features h2{font-size:24px}.tinted{margin-top:34px;padding-bottom:30px}.start-steps{grid-template-columns:1fr;gap:20px}.start-steps li{display:flex}.step-number{margin:0}.usage-guide{padding:16px}.usage-guide>summary{font-size:13px}.usage-guide>summary span{display:none}th,td{padding:12px 14px}.download-section{padding-bottom:40px}.actions{gap:10px}}
 @media(max-width:360px){.demo-stage{grid-template-columns:minmax(0,1fr) 86px;gap:14px;padding:24px 12px 8px;min-height:214px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Download and onboarding use the same visual hierarchy for both platforms. */
+.hero{padding-top:48px}.hero h1{font-size:clamp(32px,4.4vw,50px);line-height:1.35}
+.hero h1 span{color:var(--green)}.mobile-break{display:none}
+.hero-downloads{margin-top:28px}.hero-downloads .button{min-width:252px;justify-content:space-between;text-align:left;padding:14px 24px;border-radius:16px}
+.hero-downloads small{display:block;font-size:11px;font-weight:400;letter-spacing:.02em;margin-top:2px;opacity:.85}
+.hero-guide{font-size:13px;margin:18px 0 10px}.hero-guide a{text-decoration-thickness:1px}.hero .note{font-size:12px}
+.demo-caption{padding-bottom:8px}.demo-note{text-align:center;margin:0;padding:0 16px 20px;color:var(--muted);font-size:11px}
+.start-intro{color:var(--muted);max-width:58em;font-size:14px}
+.platform-switch{display:inline-flex;gap:5px;background:#dfe5d7;border:1px solid #cbd4c2;border-radius:14px;padding:5px;margin:4px 0 28px}
+.platform-switch button{border:0;border-radius:10px;padding:11px 32px;min-height:44px;background:transparent;font-weight:600;font-size:14px}
+.platform-switch button[aria-pressed=true]{background:var(--green);color:white;box-shadow:0 2px 5px #1c2d2012}
+.guide-platform-heading{font-size:13px;color:var(--muted);font-weight:500;margin:0 0 22px}
+.platform-guide{scroll-margin-top:24px}.platform-guide + .platform-guide{margin-top:32px}
+.platform-guide[hidden] + .platform-guide{margin-top:0}
+.connect-step{display:flex;align-items:flex-start;gap:18px;margin-top:30px;padding:24px;border:1px solid #c0ccb4;border-radius:18px;background:#f8f9f1}
+.connect-step .step-number{background:var(--green);color:white;border-color:var(--green)}
+.connect-step h3{font-size:18px;margin:2px 0 10px}.connect-step p{font-size:14px;margin:0 0 10px;max-width:64em}.connect-step p:last-child{margin-bottom:0}.connect-step .hint{font-size:12px}
+.download-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:30px 0 22px;text-align:left}
+.download-card{background:var(--panel);border:1px solid #bdc8b0;border-radius:22px;padding:30px;display:flex;flex-direction:column;align-items:flex-start}
+.download-card .platform-label{font-size:11px;letter-spacing:.16em;color:var(--muted);margin-bottom:8px}.download-card h3{font-size:27px;margin:0 0 4px}
+.download-card p{font-size:14px;color:#485a42}.download-card .system-requirement{font-size:13px;margin-bottom:20px;color:var(--muted)}
+.download-card .button{width:100%;margin-top:8px}.download-card .download-help{font-size:13px;margin:16px 0 12px}.download-card .hint{font-size:12px;margin:0;color:var(--muted)}
+.download-links{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;margin-top:20px;font-size:13px}
+@media(max-width:620px){
+  .hero{padding-top:34px}.hero h1{font-size:30px;max-width:none}.hero h1 span{display:block;font-size:28px;text-wrap:balance}.mobile-break{display:initial}
+  .hero-downloads{display:grid;grid-template-columns:1fr;max-width:370px;margin:22px auto 16px;gap:10px}.hero-downloads .button{min-width:0;min-height:66px;font-size:15px}
+  .hero-guide{font-size:12px}.hero-guide span{display:none}.hero-guide a{display:block;padding:3px 0}.hero .note{font-size:11px}
+  .platform-switch{display:flex;width:100%;margin-bottom:22px}.platform-switch button{flex:1;padding:10px 20px}
+  .start-intro{font-size:13px}.connect-step{padding:18px 14px;gap:12px}.connect-step h3{font-size:16px}.connect-step p{font-size:13px}
+  .download-grid{grid-template-columns:1fr;gap:16px}.download-card{padding:24px}.download-card h3{font-size:25px}
+  .download-links{gap:8px 18px;font-size:12px}.start-steps p{font-size:14px}.section-note{font-size:12px}
+}

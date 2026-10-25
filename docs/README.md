@@ -6,7 +6,8 @@
 | --- | --- |
 | [product-blueprint.md](product-blueprint.md) | 产品范围、页面、手势、文本行为、验收标准 |
 | [decisions.md](decisions.md) | 可行性判断、冲突处理和代码对应关系 |
-| [installation.md](installation.md) | **安装与使用教程**：安装、授权、连接、手势、输入、设置、排障、更新与卸载，附构建／测试／打包 |
+| [installation.md](installation.md) | **Windows / Mac 快速开始**：下载、分系统安装、手机连接、首次操作和常见问题 |
+| [macos-installation.md](macos-installation.md) | **Mac 详细教程**：安装、辅助功能授权、菜单栏、排障与源码构建 |
 | [协议 v2](../Protocol/README.md) | 消息格式、去重和状态约束 |
 | [windows-installation.md](windows-installation.md) | **Windows 安装与使用**：安装程序、托盘、网络、防火墙、升级、卸载与源码构建 |
 | [windows-validation.md](windows-validation.md) | Windows 自动测试、分发验证与尚未完成的真机验收 |
