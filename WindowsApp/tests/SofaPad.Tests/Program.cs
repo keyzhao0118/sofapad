@@ -170,6 +170,46 @@ try
         state.Process(Message(a, 1, "drag", new { phase = "begin", dx = 1, dy = 1 }), a);
         state.Suspend(true); Check(closed == 48 && !state.Snapshot().Permitted, "suspension");
     });
+    Test("installer shutdown waits for the running instance to finish cleanup", () =>
+    {
+        var name = @"Local\SofaPad.Test." + Guid.NewGuid();
+        using var signal = new EventWaitHandle(false, EventResetMode.AutoReset);
+        using var started = new ManualResetEventSlim();
+        using var requested = new ManualResetEventSlim();
+        using var finishCleanup = new ManualResetEventSlim();
+        var owner = new Thread(() =>
+        {
+            using var instance = new Mutex(true, name);
+            started.Set();
+            if (signal.WaitOne(5000)) requested.Set();
+            finishCleanup.Wait(5000);
+            instance.ReleaseMutex();
+        });
+        owner.Start();
+        try
+        {
+            Check(started.Wait(3000), "instance started");
+            var stop = Task.Run(() => SofaPad.Windows.InstanceShutdown.Request(signal, name, TimeSpan.FromSeconds(5)));
+            Check(requested.Wait(3000), "shutdown requested");
+            Check(!stop.IsCompleted, "must not return while cleanup is pending");
+            finishCleanup.Set();
+            Check(stop.Wait(3000) && stop.Result, "shutdown completed");
+        }
+        finally { finishCleanup.Set(); owner.Join(6000); }
+        Check(SofaPad.Windows.InstanceShutdown.Request(signal, name, TimeSpan.Zero), "already stopped succeeds");
+    });
+    Test("installer shutdown reports timeout instead of pretending the instance exited", () =>
+    {
+        var name = @"Local\SofaPad.Test." + Guid.NewGuid();
+        using var signal = new EventWaitHandle(false, EventResetMode.AutoReset);
+        using var instance = new Mutex(true, name);
+        try
+        {
+            var stop = Task.Run(() => SofaPad.Windows.InstanceShutdown.Request(signal, name, TimeSpan.FromMilliseconds(100)));
+            Check(stop.Wait(3000) && !stop.Result && signal.WaitOne(0), "timeout with shutdown signal delivered");
+        }
+        finally { instance.ReleaseMutex(); }
+    });
     Console.WriteLine($"{passed} tests passed"); return 0;
 }
 catch (Exception error) { Console.Error.WriteLine(error); return 1; }

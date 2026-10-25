@@ -14,14 +14,16 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         if (args.Contains("--preview-server")) return RunPreview(args).GetAwaiter().GetResult();
         var sid = WindowsIdentity.GetCurrent().User!.Value;
+        var instanceName = @"Local\SofaPad." + sid;
         using var shutdown = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\SofaPad.Shutdown." + sid);
-        if (args.Contains("--shutdown")) { shutdown.Set(); return 0; }
+        if (args.Contains("--shutdown")) return InstanceShutdown.Request(shutdown, instanceName, TimeSpan.FromSeconds(15)) ? 0 : 2;
         if (args.Contains("--uninstall-user"))
         {
             using var run = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
-            run?.DeleteValue("SofaPad", false); shutdown.Set(); return 0;
+            run?.DeleteValue("SofaPad", false);
+            return InstanceShutdown.Request(shutdown, instanceName, TimeSpan.FromSeconds(15)) ? 0 : 2;
         }
-        using var singleton = new Mutex(true, @"Local\SofaPad." + sid, out var first);
+        using var singleton = new Mutex(true, instanceName, out var first);
         if (!first) { MessageBox.Show("SofaPad 已在运行，请点击任务栏通知区域的图标。", "SofaPad"); return 0; }
         if (new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
         { MessageBox.Show("请以普通用户身份打开 SofaPad。局域网控制服务不应以管理员权限运行。", "SofaPad"); return 1; }

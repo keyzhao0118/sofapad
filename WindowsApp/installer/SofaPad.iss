@@ -65,14 +65,9 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var ResultCode: Integer;
 begin
-  if FileExists(ExpandConstant('{app}\SofaPad.exe')) then begin
-    Exec(ExpandConstant('{app}\SofaPad.exe'), '--shutdown', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(3500);
-  end;
   Result := '';
-end;
-
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-begin
-  if CurUninstallStep = usUninstall then Sleep(3500);
+  if FileExists(ExpandConstant('{app}\SofaPad.exe')) then begin
+    if not Exec(ExpandConstant('{app}\SofaPad.exe'), '--shutdown', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+      Result := 'SofaPad 尚未退出。请从托盘菜单退出 SofaPad 后重试安装。';
+  end;
 end;

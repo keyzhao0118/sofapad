@@ -5,5 +5,6 @@
     <ProjectReference Include="../../src/SofaPad.Input.Windows/SofaPad.Input.Windows.csproj" />
     <ProjectReference Include="../../src/SofaPad.Server/SofaPad.Server.csproj" />
     <Content Include="../../../Protocol/fixtures/messages.json" Link="fixtures.json" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../../src/SofaPad.Windows/InstanceShutdown.cs" Link="InstanceShutdown.cs" />
   </ItemGroup>
 </Project>
