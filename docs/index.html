@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SofaPad · 坐在沙发上，用手机控制电脑</title>
-<meta name="description" content="SofaPad 把手机浏览器变成 Mac 的整屏触控板和文字输入端。手机无需安装 App，同一 Wi-Fi 即可连接。了解适用场景、安装步骤、触控手势、键盘输入与手感设置，下载 macOS 安装包。">
+<title>SofaPad · 用手机控制 Windows 和 Mac</title>
+<meta name="description" content="把手机浏览器变成 Windows 和 Mac 的触控板与键盘。免费下载 Windows 11 安装包、Mac 安装包，按图文步骤连接同一 Wi-Fi 即可使用。手机无需安装 App，无需账号。">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:title" content="SofaPad · 坐在沙发上，用手机控制电脑">
-<meta property="og:description" content="整屏触控、双侧滚动、中文输入。只在 Mac 安装，手机打开浏览器就能用。">
+<meta property="og:title" content="SofaPad · 用手机控制 Windows 和 Mac">
+<meta property="og:description" content="Windows 和 Mac 都能用。电脑安装一次，手机打开浏览器：移动、点击、滚动、拖动和中文输入。">
 <meta property="og:url" content="https://keyzhao0118.github.io/sofapad/">
 <meta property="og:image" content="https://keyzhao0118.github.io/sofapad/images/app-icon.png">
 <meta name="theme-color" content="#e8eade">
@@ -20,19 +20,23 @@
 <a class="skip-link" href="#main">跳到正文</a>
 <header class="site-header"><nav class="wrap nav" aria-label="主导航">
 <a class="brand" href="#"><img src="images/app-icon.png" width="40" height="40" alt="">SofaPad</a>
-<div class="nav-links"><a href="#scenarios">适用场景</a><a href="#features">功能</a><a href="#start">怎么用</a><a href="#faq">常见问题</a><a class="nav-download" href="#download">下载</a></div>
+<div class="nav-links"><a href="#scenarios">适用场景</a><a href="#features">功能</a><a href="#start">安装指南</a><a href="#faq">常见问题</a><a class="nav-download" href="#download">下载</a></div>
 </nav></header>
 <main id="main">
 <section class="hero"><div class="wrap hero-copy">
-<p class="eyebrow">手机无需安装 · 同一局域网 · 免费开源</p>
-<h1>坐在沙发上，用手机控制电脑。</h1>
-<p class="tagline">大屏看画面。手机当触控板，也当键盘。</p>
-<div class="actions"><a class="button primary" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10.pkg">下载 Mac 安装包 ↓</a><a class="button" href="#start">三步开始</a></div>
-<p class="note">Mac 0.9.10 · Apple Silicon · macOS 13+ · 未公证。Windows 0.10.0 开发预览：<a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/windows-installation.md">安装与构建说明</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/windows-validation.md">验证状态</a>。</p>
-</div><section id="demo" class="demo wrap" aria-label="手机与 Mac 同步操作模拟演示">
+<p class="eyebrow">SOFAPAD 0.10.0 · 免费开源 · 手机无需安装 APP</p>
+<h1>手机变触控板。<br><span>Windows 和 Mac，都能用。</span></h1>
+<p class="tagline">电脑装一次，手机打开浏览器。<br class="mobile-break">坐在沙发上，移动、滚动，也能输入中文。</p>
+<div class="actions hero-downloads">
+<a class="button primary" data-download="windows" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64-setup.exe"><span>下载 Windows 版 <small>Windows 11 · x64 · EXE</small></span><span aria-hidden="true">↓</span></a>
+<a class="button primary" data-download="macos" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-macos-arm64.pkg"><span>下载 Mac 版 <small>macOS 13+ · M 系列芯片 · PKG</small></span><span aria-hidden="true">↓</span></a>
+</div>
+<p class="hero-guide"><a href="#start">第一次用？跟着安装指南开始 →</a><span> · </span><a href="#download">系统要求与备用下载</a></p>
+<p class="note">开发预览：Windows 未签名，Mac 未公证。首次安装可能有系统提示，<a href="#install-prompts">查看处理方法</a>。</p>
+</div><section id="demo" class="demo wrap" aria-label="手机与 Windows / Mac 同步操作模拟演示">
 <div class="demo-stage">
 <figure class="demo-computer">
-<svg viewBox="0 0 570 360" role="img" aria-label="模拟 Mac 画面：指针移动、播放、滚动、拖动和中文搜索">
+<svg viewBox="0 0 570 360" role="img" aria-label="模拟电脑画面：指针移动、播放、滚动、拖动和中文搜索">
 <defs><clipPath id="mac-screen-clip"><rect x="17" y="14" width="536" height="302" rx="12"/></clipPath><linearGradient id="film-sky" x2="0" y2="1"><stop stop-color="#bdcbbb"/><stop offset="1" stop-color="#e5e8dc"/></linearGradient></defs>
 <rect x="6" y="3" width="558" height="324" rx="20" fill="#293a30"/><g clip-path="url(#mac-screen-clip)"><rect x="17" y="14" width="536" height="302" fill="#f5f5ed"/>
 <rect x="17" y="14" width="536" height="24" fill="#e6e9df"/><circle cx="32" cy="26" r="3" fill="#a3b199"/><circle cx="44" cy="26" r="3" fill="#bcc5b4"/><circle cx="56" cy="26" r="3" fill="#cdd3c5"/>
@@ -60,32 +64,49 @@
 <path id="phone-trail" d="M86 245L86 245" fill="none" stroke="#a78654" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 5" opacity="0"/><g id="demo-finger" transform="translate(86 245)"><circle r="22" fill="#a78654" fill-opacity=".08"/><circle r="13" fill="#f1dfc4" fill-opacity=".8" stroke="#a78654" stroke-width="1.5"/><circle r="3" fill="#a78654"/><circle id="phone-hold" r="15" fill="none" stroke="#a78654" stroke-width="2" transform="rotate(-90)" stroke-dasharray="0 94" opacity="0"/></g></g>
 </svg></figure>
 </div>
-<p id="demo-caption" class="demo-caption">滑动轻点，移动指针并开始播放。</p>
+<p id="demo-caption" class="demo-caption">滑动轻点，移动指针并开始播放。</p><p class="demo-note">操作示意 · Windows 与 Mac 共用同一套手机界面</p>
 </section></section>
 <section id="scenarios" class="wrap section">
 <p class="eyebrow">手机在手边，就够了</p><h2>你的沙发，离大屏更近一点。</h2>
 <div class="grid three scenario-cards">
 <article><div class="scene-art lounge" aria-hidden="true"><span class="room-tv">▶</span><span class="room-console"></span><span class="room-sofa"></span><span class="room-phone"></span><span class="room-signal">···</span></div><h3>客厅看电影</h3><p>打开视频，拖动进度，搜一部想看的电影。</p></article>
-<article><div class="scene-art reading" aria-hidden="true"><span class="room-tv"><i></i><i></i><i></i></span><span class="room-laptop"></span><span class="room-phone"></span><span class="room-signal">···</span></div><h3>大屏慢慢逛</h3><p>MacBook 接大屏，看照片，翻网页。</p></article>
-<article><div class="scene-art searching" aria-hidden="true"><span class="room-tv"><b>周末电影</b></span><span class="room-phone">⌨</span><span class="room-signal">···</span></div><h3>想搜就搜</h3><p>熟悉的手机输入法，文字送到 Mac。</p></article>
+<article><div class="scene-art reading" aria-hidden="true"><span class="room-tv"><i></i><i></i><i></i></span><span class="room-laptop"></span><span class="room-phone"></span><span class="room-signal">···</span></div><h3>大屏慢慢逛</h3><p>Windows 笔记本或 Mac 接大屏，看照片、翻网页。</p></article>
+<article><div class="scene-art searching" aria-hidden="true"><span class="room-tv"><b>周末电影</b></span><span class="room-phone">⌨</span><span class="room-signal">···</span></div><h3>想搜就搜</h3><p>熟悉的手机输入法，文字送到电脑当前输入框。</p></article>
 </div></section>
 <section id="features" class="wrap section compact-features">
 <div><p class="eyebrow">用起来轻，习惯留下来</p><h2>连上，就是你的手感。</h2></div>
-<div class="utility-grid"><article><span aria-hidden="true">◉</span><h3>设置保存在 Mac</h3><p>速度、方向、常亮；下次连接自动同步。</p></article><article><span aria-hidden="true">☼</span><h3>常亮手动开关</h3><p>前台尝试保活，状态在设置中查看。</p></article><article><span aria-hidden="true">⌘</span><h3>轻量菜单栏 App</h3><p>支持多设备、登录启动，无需云账户。</p></article></div>
+<div class="utility-grid"><article><span aria-hidden="true">◉</span><h3>设置保存在电脑</h3><p>速度、方向、常亮；下次连接自动同步。</p></article><article><span aria-hidden="true">☼</span><h3>常亮手动开关</h3><p>前台尝试保活，状态在设置中查看。</p></article><article><span aria-hidden="true">⌘</span><h3>轻量电脑端</h3><p>Windows 托盘 / Mac 菜单栏，支持登录启动。</p></article></div>
 </section>
 <section id="start" class="section tinted"><div class="wrap">
-<p class="eyebrow">安装与连接</p><h2>三步，把手机连到 Mac。</h2>
+<p class="eyebrow">从安装到第一次连接</p><h2>选你的电脑，跟着做就能用。</h2>
+<p class="start-intro">只在电脑安装 SofaPad。手机使用 Safari、Chrome 等浏览器，不用下载 App，也不用注册账号。</p>
+<div class="platform-switch" role="group" aria-label="选择电脑系统" hidden>
+<button type="button" data-platform="windows" aria-pressed="true" aria-controls="windows-start">Windows</button>
+<button type="button" data-platform="macos" aria-pressed="false" aria-controls="macos-start">Mac</button>
+</div>
+<article id="windows-start" class="platform-guide" data-guide="windows">
+<h3 class="guide-platform-heading">Windows 11 · x64</h3>
 <ol class="start-steps">
-<li><span class="step-number" aria-hidden="true">1</span><div><h3>Mac 安装并打开</h3><p>下载 PKG 安装包；打开后，菜单栏出现 SofaPad。</p></div></li>
-<li><span class="step-number" aria-hidden="true">2</span><div><h3>授予辅助功能权限</h3><p>菜单栏 →「授予辅助功能权限…」，在系统设置中开启。</p></div></li>
-<li><span class="step-number" aria-hidden="true">3</span><div><h3>手机打开地址</h3><p>连接同一局域网，浏览器打开 Mac 菜单中的 .local 或 IP 地址。</p></div></li>
-</ol><p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">完整安装与排障教程 →</a></p>
-<p class="section-note">Mac 需保持已登录、解锁、唤醒；手机使用现代浏览器。当前安装包仅提供 Apple Silicon，Intel 用户需自行构建。</p>
+<li><span class="step-number" aria-hidden="true">1</span><div><h3>双击 EXE，完成安装</h3><p><a href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64-setup.exe">下载 Windows 安装包</a>，按向导安装。系统请求管理员授权时确认；安装包已包含运行环境。</p></div></li>
+<li><span class="step-number" aria-hidden="true">2</span><div><h3>在右下角找到 SofaPad</h3><p>从开始菜单打开 SofaPad。它没有主窗口：请在任务栏通知区域找图标，可能藏在 <strong>∧</strong> 里。双击图标查看手机连接地址。</p></div></li>
+<li><span class="step-number" aria-hidden="true">3</span><div><h3>连接家庭网络</h3><p>手机和电脑连同一个 Wi-Fi。在 Windows「设置 → 网络和 Internet」中，将当前家庭网络设为<strong>专用网络</strong>。安装器已添加对应防火墙规则。</p></div></li>
+</ol><p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/windows-installation.md">Windows 详细安装与排障 →</a></p>
+</article>
+<article id="macos-start" class="platform-guide" data-guide="macos">
+<h3 class="guide-platform-heading">Mac · Apple Silicon（M 系列）· macOS 13+</h3>
+<ol class="start-steps">
+<li><span class="step-number" aria-hidden="true">1</span><div><h3>双击 PKG，完成安装</h3><p><a href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-macos-arm64.pkg">下载 Mac 安装包</a>，按向导安装到「应用程序」，然后打开 SofaPad。图标在顶部菜单栏，没有常驻窗口。</p></div></li>
+<li><span class="step-number" aria-hidden="true">2</span><div><h3>允许辅助功能权限</h3><p>点击 SofaPad 菜单 →「授予辅助功能权限…」，在「系统设置 → 隐私与安全性 → 辅助功能」中打开 SofaPad 开关。</p></div></li>
+<li><span class="step-number" aria-hidden="true">3</span><div><h3>连接同一个 Wi-Fi</h3><p>让手机与 Mac 接入同一家庭网络。点击顶部 SofaPad 图标，找到连接地址；可以选 <strong>.local 地址</strong>或当前 IP 地址。</p></div></li>
+</ol><p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/macos-installation.md">Mac 详细安装与排障 →</a></p>
+</article>
+<div class="connect-step"><span class="step-number" aria-hidden="true">4</span><div><h3>在手机浏览器输入电脑显示的地址</h3><p>例如 <code>http://192.168.1.23:9876/</code>。请以<strong>你自己的 SofaPad 显示的地址</strong>为准，保留 <code>http://</code> 和端口 <code>:9876</code>。</p><p>看到触控板和“可以开始操作”，轻轻滑动手机屏幕：电脑指针跟着移动，就连接成功了。</p><p class="hint">这个介绍网站负责下载和说明。控制电脑时，打开的是电脑提供的局域网地址。</p></div></div>
+<p class="section-note">使用期间电脑需保持已登录、解锁、唤醒。只在可信家庭网络使用，当前无需配对码。</p>
 </div></section>
 <section class="wrap section guide-section"><details class="usage-guide"><summary>查看完整手势、输入和设置指南 <span>展开阅读 ↓</span></summary><div class="guide-content"><section id="gestures" class="guide-block">
 <p class="eyebrow">触控操作</p><h2>看着大屏，手指这样操作。</h2>
 <div class="table-scroll"><table>
-<thead><tr><th scope="col">手机上的动作</th><th scope="col">Mac 上的效果</th></tr></thead>
+<thead><tr><th scope="col">手机上的动作</th><th scope="col">电脑上的效果</th></tr></thead>
 <tbody>
 <tr><td>单指滑动</td><td>移动指针；抬手后可以接着滑</td></tr>
 <tr><td>单指轻点 / 快速轻点两次</td><td>左键单击 / 双击</td></tr>
@@ -100,41 +121,47 @@
 </section>
 <section id="typing" class="guide-block">
 <div><p class="eyebrow">文字输入</p><h2>中文搜索，用你熟悉的键盘。</h2>
-<ol class="plain-steps"><li>先用触控板点击 Mac 上要输入的位置。</li><li>轻点手机右上角键盘图标，原生键盘呼出，顶部输入条淡入。</li><li>用手机输入法选词；提交后的文字直接出现在 Mac 光标处，手机输入框随即清空。</li><li>轻点右上角箭头、从箭头向下滑，或轻点空白触控区收起；这次收起操作不会变成鼠标点击。</li></ol>
-<div class="tips"><p><strong>退格与回车：</strong> 手机键盘的删除键发送 Backspace；回车发送真正的 Return。换行、确认还是提交，由 Mac 当前应用决定。拼音候选纠错保留在手机。</p><p><strong>语音听写：</strong> 使用手机键盘自带的听写，停顿约 1.2 秒或结束听写后发送，尚未提交的识别修正不影响已发送内容。</p><p><strong>顶部保持稳定：</strong> 输入条与收起按钮只淡入淡出，不随键盘高度上下移动。SofaPad 不读取 Mac 原有文字，也不会自动寻找输入框；断线的输入不自动重发。</p></div>
+<ol class="plain-steps"><li>先用触控板点击电脑上要输入的位置。</li><li>轻点手机右上角键盘图标，原生键盘呼出，顶部输入条淡入。</li><li>用手机输入法选词；提交后的文字直接出现在 电脑光标处，手机输入框随即清空。</li><li>轻点右上角箭头、从箭头向下滑，或轻点空白触控区收起；这次收起操作不会变成鼠标点击。</li></ol>
+<div class="tips"><p><strong>退格与回车：</strong> 手机键盘的删除键发送 Backspace；回车发送真正的 Return。换行、确认还是提交，由 电脑当前应用决定。拼音候选纠错保留在手机。</p><p><strong>语音听写：</strong> 使用手机键盘自带的听写，停顿约 1.2 秒或结束听写后发送，尚未提交的识别修正不影响已发送内容。</p><p><strong>顶部保持稳定：</strong> 输入条与收起按钮只淡入淡出，不随键盘高度上下移动。SofaPad 不读取电脑原有文字，也不会自动寻找输入框；断线的输入不自动重发。</p></div>
 </div>
 
 </section>
 <section id="settings" class="guide-block">
 
 <div><p class="eyebrow">手感与常亮</p><h2>调一次，下一次连接还是你的习惯。</h2>
-<p>触控板左上角打开设置，修改后保存在 Mac，所有连接的手机共用。</p>
+<p>触控板左上角打开设置，修改后保存在当前电脑，所有连接的手机共用。</p>
 <dl class="settings-list"><div><dt>指针与拖动速度</dt><dd>默认 1.5×，可调 0.2–5.0×。滑块往左更细，往右更快。</dd></div><div><dt>滚动速度</dt><dd>默认 0.3×，可调 0.05–5.0×；双指与侧边使用同一设置，并共用较慢的基础速度。</dd></div><div><dt>自然滚动</dt><dd>开启时内容跟随手指方向移动；关闭则反向。</dd></div><div><dt>屏幕常亮</dt><dd>默认开启，可手动关闭。系统常亮或兼容保活是否成功可在面板里查看；低电量模式、浏览器策略和媒体中断仍可能导致自动熄屏。</dd></div><div><dt>恢复默认</dt><dd>一次恢复四项设置，并同步到其他在线设备。</dd></div></dl>
 <p class="hint">常亮只在页面前台运行，不阻止手动锁屏。兼容保活显示“运行中”不代表系统保证常亮，请按手机自动锁屏时长实测。</p>
 </div></section>
 </div></details></section><section id="faq" class="section tinted"><div class="wrap faq-wrap">
-<p class="eyebrow">常见问题</p><h2>开始使用前，你可能想知道。</h2>
-<details><summary>需要在手机上安装 App 吗？</summary><p>不需要。网页随 Mac App 提供，手机浏览器打开 Mac 菜单里的局域网地址即可。这个介绍网站用于了解产品和下载，不是遥控入口。</p></details>
-<details><summary>手机打不开地址怎么办？</summary><p>确认 SofaPad 正在运行、Mac 已唤醒、服务已开启，两台设备在同一局域网。不要使用开启客户端隔离的访客 Wi-Fi；如果 .local 地址不可用，改用菜单里的 IP 地址，并检查 Mac 防火墙是否允许 SofaPad 接入。</p></details>
-<details><summary>能看到触控板，但 Mac 指针不动？</summary><p>检查 Mac「系统设置 → 隐私与安全性 → 辅助功能」中的 SofaPad 开关。更新后若授权失效，可移除旧条目，重新授权并重启 SofaPad。也要确认 Mac 没有锁屏或睡眠。</p></details>
-<details><summary>安装时提示无法验证开发者，怎么处理？</summary><p>当前开发预览使用本机 ad hoc 签名，安装包未签 Developer ID、也未公证。仅从本仓库 Release 下载，按 macOS 提示到「系统设置 → 隐私与安全性」允许打开。如果系统仍阻止，可参考安装教程中的 ZIP 安装方案；不要关闭整个系统安全保护。</p></details>
-<details><summary>能在外网用吗？有配对码吗？</summary><p>只面向可信家庭局域网。没有账号或配对码，能够访问地址的设备就可以控制；通信是明文 HTTP/WS。不要映射到公网，也不要在不可信网络使用或输入敏感内容。</p></details>
-<details><summary>文字没有发到我想要的输入框？</summary><p>SofaPad 把文字发到 Mac 当前焦点，不寻找或切换输入框。请先用触控板点中目标位置，再呼出手机键盘。发生断线或结果不确定时，先看大屏确认，未确认的输入不会自动重发。</p></details>
-<details><summary>可以同时用几台手机？</summary><p>支持多个浏览器同时连接，不限制为单台控制器；服务有 48 个连接的资源上限。每台设备独立会话，同时发生的指针手势由先开始的一方优先处理。Mac 菜单可单独断开设备或断开全部。</p></details>
-<details><summary>为什么开了常亮仍然会熄屏？</summary><p>标准常亮机制受浏览器支持与安全上下文限制，局域网 HTTP 通常会使用无声视频兼容方案，需要首次轻触激活。低电量或浏览器策略可能阻止保活；查看设置状态、轻触重试，并在实际手机上等待验证。</p></details>
-<details><summary>如何更新和卸载？</summary><p>更新：先退出旧 App，安装新版，再刷新手机页面。卸载：退出 SofaPad，把应用移到废纸篓，并按需移除登录项与辅助功能条目。没有自动更新或后台云服务。</p></details>
-<details><summary>已经验证了哪些能力？</summary><p>0.9.10 的 129 项自动测试和桌面 Chromium 回归通过，覆盖手势、输入、设置同步与本机 HTTP/WS。本页动画为模拟示意，不会操作真实 Mac 输入。iPhone 系统键盘、三指抢占、真实 Mac 输入和常亮兼容性仍需要目标设备验证。</p></details>
-<p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">查看完整安装与排障教程 →</a></p>
+<p class="eyebrow">遇到问题，先看这里</p><h2>把第一次连接，走得更顺一点。</h2>
+<details><summary>下载哪个文件？手机需要装什么？</summary><p>Windows 11 x64 电脑下载 EXE；M 系列 Mac 下载 PKG。把文件下载到要控制的电脑上安装。手机不需要安装任何 App。如果用手机看到本页，把本页地址发到电脑后再下载。GitHub 的“Source code”是源码，不是安装包。</p></details>
+<details><summary>安装后没有窗口，是没打开吗？</summary><p>这是正常的。Windows：看右下角通知区域，或点 ∧ 展开隐藏图标；双击 SofaPad 查看连接地址。Mac：看屏幕顶部菜单栏，点击 SofaPad 图标。服务随程序启动，不需要另开网页服务器。</p></details>
+<details id="install-prompts"><summary>提示“未知发布者”或“无法验证开发者”，怎么办？</summary><p>当前为开发预览，Windows 安装包未代码签名，Mac 安装包未公证。请确认文件来自本仓库 Release。Windows 若显示 SmartScreen，可查看“更多信息”，在确认来源后选择“仍要运行”（如系统提供）；如果是单位策略禁止运行，请联系管理员。Mac 请先尝试打开，再到「系统设置 → 隐私与安全性」查看“仍要打开”。不要关闭整个系统安全保护。<a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md#首次安装提示">查看详细说明</a>。</p></details>
+<details><summary>手机打不开电脑显示的地址？</summary><p>先确认电脑端 SofaPad 正在运行、服务已开启，手机和电脑连接同一个家庭 Wi-Fi，电脑没有休眠。Windows 将该网络设为“专用”；Mac 的 .local 地址打不开时换 IP 地址。避免访客 Wi-Fi、AP 隔离及影响本地网络的 VPN。请完整输入地址，不要在搜索框里搜索它，也不要打开本介绍页代替连接地址。</p></details>
+<details><summary>触控板打开了，但指针不动？</summary><p>Windows：回到普通、已解锁桌面，管理员窗口和 UAC 安全桌面无法控制，不要以管理员身份运行 SofaPad。Mac：检查「隐私与安全性 → 辅助功能」中 SofaPad 已开启；更新后失效可移除旧条目后重新添加并重启。两端都要确认服务没有被暂停。</p></details>
+<details><summary>怎么打中文、删除和按回车？</summary><p>先用触控板点击电脑的输入框，再点手机右上角键盘按钮，用手机输入法选词。中文和 Emoji 会发送到电脑当前焦点；删除键发送退格，回车发送 Enter。换行还是提交由目标应用决定。SofaPad 不读取电脑已有文字，不会自动帮你找输入框。</p></details>
+<details><summary>支持哪些电脑和手机？</summary><p>当前下载版支持 Windows 11 x64，以及 macOS 13+ 的 Apple Silicon Mac（M 系列）。Mac 可在“关于本机”里查看芯片；Intel Mac 需自行构建，Windows 10 / ARM64 尚未验证。手机用 Safari、Chrome 等现代浏览器；具体系统键盘、三指手势和常亮效果可能因设备而不同。</p></details>
+<details><summary>可以控制两台电脑，或连接多部手机吗？</summary><p>每台电脑分别安装 SofaPad，手机打开哪台电脑显示的地址，就控制哪台。多部手机可以连接同一电脑，设置会同步；同时拖动或滚动时由先开始的手势优先。电脑端菜单可以断开单台或全部设备。</p></details>
+<details><summary>为什么开启常亮后仍可能熄屏？</summary><p>常亮受手机系统、低电量模式和浏览器策略影响。保持页面在前台，首次轻触激活，查看左上角设置中的状态；失效时轻触重试。显示兼容保活运行中也不代表系统一定不会熄屏。</p></details>
+<details><summary>如何更新和卸载？</summary><p>更新：退出旧版，下载相同系统的新版安装包覆盖安装，再刷新手机页面。Windows 从“设置 → 应用 → 已安装的应用”卸载，防火墙规则随之移除，用户偏好保留。Mac 退出后将应用移到废纸篓，并按需移除登录项和辅助功能授权。软件没有自动更新。</p></details>
+<details><summary>能跨公网、远程开机或看电脑屏幕吗？</summary><p>不能。SofaPad 用手机提供鼠标与键盘输入，画面仍看电脑或电视。它使用明文局域网连接，无账号、无配对；只在可信家庭网络使用，不要把端口映射到公网。不提供屏幕镜像、远程开机或解锁。</p></details>
+<details><summary>现在验证到了什么程度？</summary><p>Windows 的 177 项自动测试、浏览器回归、隔离窗口真实鼠标键盘输入、隔离系统安装/升级/卸载，以及 macOS 自动测试和构建已通过。手机 Wi-Fi 实连、混合 DPI 多屏、长时间使用和实际登录启动仍待真机验收。本页动画是操作示意。<a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/windows-validation.md">查看验证记录</a>。</p></details>
+<p class="section-note"><a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">完整的双平台安装与使用教程 →</a></p>
 </div></section>
 <section id="download" class="wrap section download-section">
-<img src="images/app-icon.png" alt="SofaPad 应用图标" width="88" height="88" loading="lazy">
-<p class="eyebrow">下载 SofaPad 0.9.10</p><h2>让手边的手机，成为你的触控板。</h2>
-<p>免费开源 · Apple Silicon（arm64）· macOS 13 及以上 · 开发预览，未公证</p>
-<div class="actions"><a class="button primary" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10.pkg">下载 PKG 安装包 ↓</a><a class="button" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.9.10/SofaPad-0.9.10-macos-arm64.zip">下载 ZIP 压缩包</a></div>
-<p class="note"><a href="https://github.com/keyzhao0118/sofapad/releases/tag/v0.9.10">版本说明与 SHA-256 校验</a> · <a href="https://github.com/keyzhao0118/sofapad">查看源码</a> · <a href="https://github.com/keyzhao0118/sofapad/issues">反馈问题</a></p>
+<p class="eyebrow">SOFAPAD 0.10.0 · WINDOWS + MAC</p><h2>给你的电脑，选一个安装包。</h2>
+<p>免费下载，无需账号。安装后，手机只要打开浏览器。</p>
+<div class="download-grid">
+<article class="download-card"><p class="platform-label">WINDOWS</p><h3>Windows 版</h3><p class="system-requirement">Windows 11 · x64（Intel / AMD）</p><p>推荐 EXE 安装程序，包含运行时、快捷方式和家庭网络防火墙规则。</p><a class="button primary" data-download="windows" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64-setup.exe">下载 Windows 安装包 ↓</a><p class="download-help"><a href="#windows-start">Windows 安装指南</a> · <a href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-windows-x64.zip">便携 ZIP</a></p><p class="hint">便携版需完整解压，不自动添加防火墙规则。Windows 10 / ARM64 尚未验证。</p></article>
+<article class="download-card"><p class="platform-label">MACOS</p><h3>Mac 版</h3><p class="system-requirement">macOS 13+ · Apple Silicon（M 系列）</p><p>推荐 PKG 安装程序，装入“应用程序”；首次使用需开启辅助功能权限。</p><a class="button primary" data-download="macos" href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-macos-arm64.pkg">下载 Mac 安装包 ↓</a><p class="download-help"><a href="#macos-start">Mac 安装指南</a> · <a href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-macos-arm64.zip">App ZIP</a></p><p class="hint">ZIP 解压后拖入“应用程序”。Intel Mac 目前需自行构建，不要下载 M 系列安装包。</p></article>
+</div>
+<p class="note">0.10.0 为开发预览。Windows 未签名，Mac 未公证；<a href="#install-prompts">首次安装提示说明</a>。</p>
+<p class="download-links"><a href="https://github.com/keyzhao0118/sofapad/releases/tag/v0.10.0">发布说明与全部下载</a><a href="https://github.com/keyzhao0118/sofapad/releases/download/v0.10.0/SofaPad-0.10.0-SHA256SUMS.txt">SHA-256 校验值</a><a href="https://github.com/keyzhao0118/sofapad/issues">反馈问题</a></p>
 </section>
 </main>
 <footer><div class="wrap"><p><strong>SofaPad</strong> · 为客厅里的 Windows 与 Mac 而做。</p><p><a href="https://github.com/keyzhao0118/sofapad">GitHub 仓库</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/installation.md">安装教程</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/product-blueprint.md">产品文档</a> · <a href="https://github.com/keyzhao0118/sofapad/blob/main/docs/validation.md">验证记录</a> · <a href="https://github.com/keyzhao0118/sofapad/releases">全部版本</a></p><p class="muted">MIT 许可 · © 2026 Key（keyzhao0118）· 本页无追踪脚本或外部字体。</p></div></footer>
 <script type="module" src="demo.js"></script>
+<script type="module" src="site.js"></script>
 </body>
 </html>

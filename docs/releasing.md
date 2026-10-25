@@ -1,43 +1,83 @@
-# GitHub 发布与 Pages 维护
+# 双平台发布与 GitHub Pages 维护
 
-当前版本 **0.9.10（构建 21）**，标签 `v0.9.10`。此前 GitHub 已有 0.9.7 Release，保留历史，新版设为最新。
+当前公开版本：**0.10.0 · Windows / Mac 开发预览**，标签 `v0.10.0`。历史版本保留。
 
-- [中文宣传与使用页](https://keyzhao0118.github.io/sofapad/)
-- [0.9.10 Release](https://github.com/keyzhao0118/sofapad/releases/tag/v0.9.10)
-- [发布说明原文](releases/0.9.10.md)
+- [产品介绍与安装引导](https://keyzhao0118.github.io/sofapad/)
+- [0.10.0 Release](https://github.com/keyzhao0118/sofapad/releases/tag/v0.10.0)
+- [发布说明原文](releases/0.10.0.md)
 
-## 发布前
+## 发布入口
 
-1. 更新 `MacApp/Info.plist` 与 `Web/package.json` 的版本，以及 README、CHANGELOG、宣传页、安装教程和验证记录。
-2. 运行 `bash scripts/test.sh`。有键盘或手势改动时运行 `Tests/Integration/browser_test.mjs`，浏览器演示只使用假输入后端。
-3. 构建与打包：`bash scripts/build.sh`，再 `MAKE_DMG=0 bash scripts/package.sh`。
-4. 解包核对安装位置、版本、App 文件哈希和内置 Web 资源，运行 `codesign --verify --deep --strict build/SofaPad.app`。本机 ad hoc 校验不代表 Developer ID 签名、公证或真机验收。
-5. 为 `.pkg` 与 `.zip` 生成校验文件；文件名必须与 Release 一致：
+版本标签触发 [.github/workflows/release.yml](../.github/workflows/release.yml)，复用双平台 CI：
+
+1. Windows 构建、测试、浏览器回归、生成 EXE / ZIP，并在隔离 runner 上验证安装、升级和卸载。
+2. macOS 构建、测试、生成 Apple Silicon PKG / ZIP，验证 PKG 的 /Applications 安装位置、ZIP 内容、版本、架构和每个 App 文件。
+3. 两个平台全部成功后，汇总四个安装文件并生成统一 SHA-256 文件。
+4. 在 GitHub 创建草稿，上传文件并逐项比对服务器返回的大小和 SHA-256；全部一致后公开发布并设为最新。失败时保留草稿，不发布不完整的下载入口。
+
+Release 使用 GitHub Actions 的仓库令牌；不需要在电脑保存发布令牌。公开版本的安装包不会自动覆盖。
+
+## 发布前检查
+
+更新版本时同时检查：
+
+- `Web/package.json`、`MacApp/Info.plist`（含构建号）、`WindowsApp/Directory.Build.props`；
+- Windows 构建、安装和测试脚本中的默认版本；
+- README、CHANGELOG、`docs/index.html`、三份安装教程，以及 `docs/releases/<版本>.md`；
+- 官网、README 和 Release 的四个下载文件名必须一致。
+
+可以在 PR 上先跑双平台 CI；两端安装包会作为 `SofaPad-windows-x64`、`SofaPad-macos-arm64` artifacts 留存。Artifacts 面向开发者且会过期；对外下载入口必须指向 Release 附件。
+
+正常发布：先提交并合入 main，再运行：
 
 ```bash
-(cd build && shasum -a 256 SofaPad-0.9.10.pkg SofaPad-0.9.10-macos-arm64.zip) > build/SofaPad-0.9.10-SHA256SUMS.txt
+bash scripts/publish-release.sh --dry-run
+bash scripts/publish-release.sh
 ```
 
-6. 提交所有源码与文档；安装包不进入 Git，作为 Release 附件上传。确认远端没有新提交，不强推。
+也可以推送已核对的标签，例如：
 
-## 发布 Release
+```bash
+git tag -a v0.10.0 -m "SofaPad 0.10.0 - Windows / Mac"
+git push origin v0.10.0
+```
 
-网页方式：在 Releases 创建草稿，选择 `v0.9.10` 标签并指向包含本版源码的提交；填写 [发布说明](releases/0.9.10.md)，上传 `.pkg`、`.zip` 和 `SHA256SUMS.txt`，等三个文件全部上传完成后发布，设为最新。旧 Release 和标签保留。
+已有公开标签不得移动或重写。构建失败时修正问题并按实际情况发布新版本；仅临时网络失败可在 Actions 重跑原工作流。
 
-脚本方式：`bash scripts/publish-release.sh`。需要已有 Git 推送认证，以及可访问本仓库的 GitHub 令牌：Contents 读写用于 Release，Pages 读写用于配置介绍页。令牌通过隐藏输入或 `GH_TOKEN` 环境变量传入，不提交到仓库。可用 `PYTHON_BINARY` 指定运行时。
+## 对外文件
 
-脚本会拒绝未提交改动、分支／App 版本不一致或缺失产物；先创建草稿，上传三份附件后再发布。同名已有资源须通过大小与 SHA-256 比对，不覆盖不一致的安装包。发布说明优先读取 `docs/releases/<版本>.md`，不存在则使用 CHANGELOG 中的对应段落。
+| 文件 | 用途 |
+| --- | --- |
+| `SofaPad-0.10.0-windows-x64-setup.exe` | Windows 推荐安装器 |
+| `SofaPad-0.10.0-windows-x64.zip` | Windows 便携版 |
+| `SofaPad-0.10.0-macos-arm64.pkg` | Mac 推荐安装器 |
+| `SofaPad-0.10.0-macos-arm64.zip` | Mac App ZIP |
+| `SofaPad-0.10.0-SHA256SUMS.txt` | 四个文件的统一 SHA-256 |
+
+安装包不提交到 Git。Windows 自带运行时；Mac 仍为 ad hoc 签名，没有 Developer ID、公证；Windows 未 Authenticode 签名。发布页与安装步骤应如实说明，不能称为已签名稳定版。
 
 ## GitHub Pages
 
-仓库 Settings → Pages → Build and deployment：选择 **Deploy from a branch**，分支 **main**，目录 **/docs**。`docs/.nojekyll` 保留，入口为 `docs/index.html`，样式为 `docs/site.css`，同步演示为 `docs/demo.js`（本地 ES module），图标和截图在 `docs/images/`。
+仓库 Settings → Pages 使用 **Deploy from a branch**，来源 **main /docs**。保留 `docs/.nojekyll`。
 
-宣传页以中文为主，首屏用六段手机／Mac 同步动画展示移动点击、边缘滚动、拖动、中文输入、双击与长按右击。演示为单张卡片加底部一句说明，自动轮流播放，无控制栏和步骤文字；完整手势、输入与设置收进可展开指南，安装和 FAQ 保留。它是介绍与下载页，不提供遥控连接；用户仍需打开自己 Mac 菜单里的局域网地址。无第三方字体、追踪脚本或框架依赖。演示维护方式见 [动态宣传页](promotion-demo.md)。
+- `docs/index.html`：双平台首屏下载、安装引导、手势、FAQ 和下载卡片。
+- `docs/site.css`：响应式布局，沿用现有品牌颜色与图标。
+- `docs/site.js`：Windows / Mac 引导切换、深链接及安装提示展开。没有 JavaScript 时两份指南仍可阅读。
+- `docs/demo.js`：手机与电脑同步操作的模拟动画，不会投递真实输入。
+- `docs/installation.md`：通用快速开始；Windows 与 Mac 分别有详细教程。
 
-发布后检查 Pages 部署成功、页面 HTTP 200、图像与样式正常、PKG／ZIP 下载链接指向最新版本。源码更新推到 main 后，Pages 自动部署。下一版需同步更改首页两处下载链接、版本显示、README 与安装教程。
+先确认 Release 的下载文件存在，再上线对应版本的页面按钮。发布后检查：主页和资源 HTTP 200，所有下载链接可到达附件，手机和桌面布局正常，系统切换与锚点可用。源码推送到 main 后由 GitHub Pages 自动部署。
 
-截图使用实际浏览器演示后端生成，说明中标注未展示原生手机键盘；不要把桌面模拟截图当成 iPhone 真机验收。
+本地页面回归：
 
-## 公开分发的边界
+```text
+node Tests/Integration/site_test.mjs
+```
 
-当前提供 Apple Silicon 开发预览，未经过 Apple 公证。Developer ID、Hardened Runtime、公证、旧版 macOS 和真实 iPhone 验收仍是后续工作。服务无配对、明文 HTTP/WS，只供可信家庭局域网使用。发布说明和宣传页必须保留这些实际限制。
+使用与原浏览器回归相同的 `PLAYWRIGHT_MODULE`、`CHROME_BINARY` 环境变量。检查会启动临时回环服务器，覆盖窄屏、桌面、系统切换、深链接和无 JavaScript 阅读，不控制真实电脑输入。
+
+## 面向用户的说明原则
+
+首先说明 Windows / Mac 共用手机界面，给出对应安装包和实际支持的系统/架构。安装步骤按系统区分，解释没有主窗口、图标在哪里、Mac 授权及 Windows 专用网络。
+
+明确区分介绍网站与真正的局域网控制地址；不要让普通用户下载 Source code、安装开发环境或运行构建脚本。对未签名、公证及尚未完成的手机真机验收保持准确说明。

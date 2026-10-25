@@ -1,11 +1,11 @@
-// A local illustration: no connection to the Mac, and no native input events.
+// A local illustration: no connection to a computer, and no native input events.
 export const scenes = [
   { id: 'play', caption: '滑动轻点，移动指针并开始播放。' },
   { id: 'scroll', caption: '拇指沿边缘滑动，大屏页面同步滚动。' },
   { id: 'drag', caption: '轻点后再按住滑动，拖动播放进度。' },
-  { id: 'type', caption: '用手机选词，中文直接输入到 Mac。' },
+  { id: 'type', caption: '用手机选词，中文直接输入到电脑。' },
   { id: 'double', caption: '快速轻点两次，打开大屏上的照片。' },
-  { id: 'right', caption: '静止按住半秒，呼出 Mac 右键菜单。' }
+  { id: 'right', caption: '静止按住半秒，呼出电脑右键菜单。' }
 ];
 const clamp = value => Math.max(0, Math.min(1, value));
 const ease = value => { const t = clamp(value); return t * t * (3 - 2 * t); };

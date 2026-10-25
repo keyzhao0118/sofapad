@@ -4,16 +4,19 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   windows:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -37,6 +40,7 @@ jobs:
           $env:CHROME_BINARY = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
           $env:SOFAPAD_BINARY = (Resolve-Path 'WindowsApp/src/SofaPad.Windows/bin/Release/net10.0-windows/SofaPad.exe').Path
           node Tests/Integration/browser_test.mjs
+          node Tests/Integration/site_test.mjs
       - name: Package self-contained installer and ZIP
         shell: pwsh
         run: ./scripts/package-windows.ps1 -SkipBuild
@@ -52,6 +56,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -62,3 +68,17 @@ jobs:
         run: bash scripts/test.sh
       - name: Build Mac application and validate bundled resources
         run: bash scripts/build.sh
+      - name: Package and verify Apple Silicon installer and ZIP
+        run: |
+          test "$(uname -m)" = arm64
+          MAKE_DMG=0 ARCH=arm64 bash scripts/package.sh
+          bash scripts/verify-macos-package.sh
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' MacApp/Info.plist)
+          mkdir -p build/releases
+          cp "build/SofaPad-$version.pkg" "build/releases/SofaPad-$version-macos-arm64.pkg"
+          cp "build/SofaPad-$version-macos-arm64.zip" build/releases/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SofaPad-macos-arm64
+          path: build/releases/*
+          if-no-files-found: error
